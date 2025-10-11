@@ -81,7 +81,7 @@ const Login = () => {
           } else {
             setMessage({ type: 'error', text: 'Invalid role ID.' });
           }
-        }, 1200);
+        }, 1000);
       } else {
         setMessage({ type: 'error', text: data.message || 'Login failed.' });
       }
@@ -95,15 +95,18 @@ const Login = () => {
   return (
     <div className="registration-container">
       <div className="registration-card">
+        {/* Header */}
         <div className="login-header">
           <h2>Welcome Back</h2>
           <p className="subtitle">Sign in to your account</p>
         </div>
 
+        {/* Message Display */}
         {message.text && (
           <div className={`message ${message.type}`}>{message.text}</div>
         )}
 
+        {/* Login Form */}
         <form className="form-step" onSubmit={handleLogin}>
           <div className="form-group">
             <label htmlFor="email">Email Address *</label>
@@ -139,14 +142,21 @@ const Login = () => {
             )}
           </div>
 
+          {/* Forgot Password link */}
           <div className="forgot-password-link">
-            <a href="/forgot-password">Forgot Password?</a>
+            <span
+              style={{ color: '#007bff', cursor: 'pointer' }}
+              onClick={() => navigate('/forgotpassword')}
+            >
+              Forgot Password?
+            </span>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
 
+          {/* Signup redirect */}
           <p className="login-link">
             Don’t have an account?{' '}
             <span

@@ -4,6 +4,7 @@ import Login from "./component/Login"; // Capitalize to match filename conventio
 import UserDashboard from './component/user/UserDashboard';
 import AdminLayout from './component/admin/AdminLayout';
 import ProtectedRoute from './component/ProtectedRoute';
+import ForgotPassword from './component/ForgotPassword';
 function App() {
   return (
     <Router>
@@ -11,7 +12,7 @@ function App() {
         {/* public route */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        {/* Add more routes if needed */}
+        <Route path="/forgotpassword" element={<ForgotPassword />} />
 
         {/* User Dashboard Route */}
           <Route
