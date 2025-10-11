@@ -1,6 +1,6 @@
-// RegistrationPage.jsx
 import React, { useState } from 'react';
-import './Signup.css'
+import { useNavigate } from 'react-router-dom'; // ✅ Import navigation hook
+import './Signup.css';
 
 const Signup = () => {
   const [step, setStep] = useState(1);
@@ -16,17 +16,15 @@ const Signup = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [otpSent, setOtpSent] = useState(false);
 
   const API_BASE_URL = 'https://localhost:7208/api/User';
+  const navigate = useNavigate(); // ✅ Initialize navigation
 
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error for this field
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -48,27 +46,20 @@ const Signup = () => {
   // Validate Step 1
   const validateStep1 = () => {
     const newErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-
     if (!formData.phoneNo.trim()) {
       newErrors.phoneNo = 'Phone number is required';
     } else if (!/^\d{10}$/.test(formData.phoneNo)) {
@@ -80,67 +71,54 @@ const Signup = () => {
   };
 
   // Step 1: Send OTP
-// Step 1: Send OTP
-const handleSendOTP = async () => {
-  if (!validateStep1()) return;
+  const handleSendOTP = async () => {
+    if (!validateStep1()) return;
+    setLoading(true);
+    setMessage({ type: '', text: '' });
 
-  setLoading(true);
-  setMessage({ type: '', text: '' });
+    try {
+      const response = await fetch(`${API_BASE_URL}/SendOTP`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: formData.email })
+      });
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/SendOTP`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // ✅ important for session cookie
-      body: JSON.stringify({ email: formData.email })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      setMessage({ type: 'success', text: 'OTP sent to your email!' });
-      setTimeout(() => {
-        setStep(2);
-        setMessage({ type: '', text: '' });
-      }, 1500);
-    } else {
-      setMessage({ type: 'error', text: data.message || 'Failed to send OTP' });
+      const data = await response.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: 'OTP sent to your email!' });
+        setOtpSent(true);
+        setTimeout(() => setMessage({ type: '', text: '' }), 1500);
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to send OTP' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    setMessage({ type: 'error', text: 'Network error. Please try again.' });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // Handle OTP input
   const handleOtpChange = (index, value) => {
     if (!/^\d*$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    // Auto-focus next input
     if (value && index < 5) {
       document.getElementById(`otp-${index + 1}`).focus();
     }
   };
 
-  // Handle OTP input keydown
   const handleOtpKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       document.getElementById(`otp-${index - 1}`).focus();
     }
   };
 
-  // Step 2: Verify OTP
-  const handleVerifyOTP = async () => {
+  // Step 1: Verify OTP and move to Step 2
+  const handleVerifyAndProceed = async () => {
     const otpCode = otp.join('');
-
     if (otpCode.length !== 6) {
       setMessage({ type: 'error', text: 'Please enter complete OTP' });
       return;
@@ -153,29 +131,28 @@ const handleSendOTP = async () => {
       const response = await fetch(`${API_BASE_URL}/VerifyOTP`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // ✅ important
+        credentials: 'include',
         body: JSON.stringify({ email: formData.email, otp: otpCode }),
       });
 
       const data = await response.json();
-
       if (data.success) {
         setMessage({ type: 'success', text: 'OTP verified successfully!' });
         setTimeout(() => {
-          setStep(3);
+          setStep(2);
           setMessage({ type: '', text: '' });
         }, 1500);
       } else {
         setMessage({ type: 'error', text: data.message || 'Invalid OTP' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 3: Complete Registration
+  // Step 2: Complete Registration
   const handleRegister = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
@@ -186,7 +163,6 @@ const handleSendOTP = async () => {
       formDataToSend.append('Email', formData.email);
       formDataToSend.append('Password', formData.password);
       formDataToSend.append('PhoneNo', formData.phoneNo);
-
       if (formData.profileImage) {
         formDataToSend.append('profileImage', formData.profileImage);
       }
@@ -197,20 +173,19 @@ const handleSendOTP = async () => {
       });
 
       const data = await response.json();
-
       if (data.success) {
         setMessage({ type: 'success', text: 'Registration successful!' });
-        // Store token
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
+        // ✅ Use React Router navigation instead of window.location.href
         setTimeout(() => {
-          window.location.href = '/user/dashboard';
+          navigate('/'); // redirect to login page
         }, 2000);
       } else {
         setMessage({ type: 'error', text: data.message || 'Registration failed' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -229,33 +204,19 @@ const handleSendOTP = async () => {
         {/* Progress Steps */}
         <div className="progress-steps">
           <div className={`step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
-            <div className="step-circle">
-              {step > 1 ? '✓' : '1'}
-            </div>
-            <span className="step-label">Details</span>
+            <div className="step-circle">{step > 1 ? '✓' : '1'}</div>
+            <span className="step-label">Details & Verify</span>
           </div>
           <div className="step-line"></div>
-          <div className={`step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
-            <div className="step-circle">
-              {step > 2 ? '✓' : '2'}
-            </div>
-            <span className="step-label">Verify</span>
-          </div>
-          <div className="step-line"></div>
-          <div className={`step ${step >= 3 ? 'active' : ''}`}>
-            <div className="step-circle">3</div>
+          <div className={`step ${step >= 2 ? 'active' : ''}`}>
+            <div className="step-circle">2</div>
             <span className="step-label">Complete</span>
           </div>
         </div>
 
-        {/* Message Display */}
-        {message.text && (
-          <div className={`message ${message.type}`}>
-            {message.text}
-          </div>
-        )}
+        {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
-        {/* Step 1: User Details */}
+        {/* Step 1 */}
         {step === 1 && (
           <div className="form-step">
             <h2>Create Your Account</h2>
@@ -271,6 +232,7 @@ const handleSendOTP = async () => {
                 onChange={handleChange}
                 placeholder="Enter your full name"
                 className={errors.name ? 'error' : ''}
+                disabled={otpSent}
               />
               {errors.name && <span className="error-text">{errors.name}</span>}
             </div>
@@ -285,6 +247,7 @@ const handleSendOTP = async () => {
                 onChange={handleChange}
                 placeholder="Enter your email"
                 className={errors.email ? 'error' : ''}
+                disabled={otpSent}
               />
               {errors.email && <span className="error-text">{errors.email}</span>}
             </div>
@@ -300,6 +263,7 @@ const handleSendOTP = async () => {
                 placeholder="10-digit phone number"
                 maxLength="10"
                 className={errors.phoneNo ? 'error' : ''}
+                disabled={otpSent}
               />
               {errors.phoneNo && <span className="error-text">{errors.phoneNo}</span>}
             </div>
@@ -315,6 +279,7 @@ const handleSendOTP = async () => {
                   onChange={handleChange}
                   placeholder="Min 6 characters"
                   className={errors.password ? 'error' : ''}
+                  disabled={otpSent}
                 />
                 {errors.password && <span className="error-text">{errors.password}</span>}
               </div>
@@ -329,6 +294,7 @@ const handleSendOTP = async () => {
                   onChange={handleChange}
                   placeholder="Re-enter password"
                   className={errors.confirmPassword ? 'error' : ''}
+                  disabled={otpSent}
                 />
                 {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
               </div>
@@ -343,6 +309,7 @@ const handleSendOTP = async () => {
                   accept="image/*"
                   onChange={handleFileChange}
                   className="file-input"
+                  disabled={otpSent}
                 />
                 <label htmlFor="profileImage" className="file-label">
                   <span className="file-icon">📁</span>
@@ -352,76 +319,70 @@ const handleSendOTP = async () => {
               {errors.profileImage && <span className="error-text">{errors.profileImage}</span>}
             </div>
 
-            <button
-              className="btn-primary"
-              onClick={handleSendOTP}
-              disabled={loading}
-            >
-              {loading ? 'Sending...' : 'Send OTP'}
-            </button>
+            {/* OTP Section */}
+            {otpSent ? (
+              <>
+                <div className="otp-section">
+                  <div className="otp-icon">📧</div>
+                  <p className="otp-subtitle">
+                    We've sent a 6-digit code to<br />
+                    <strong>{formData.email}</strong>
+                  </p>
 
-            <p className="login-link">
-              Already have an account? <a href="/login">Sign In</a>
-            </p>
+                  <div className="otp-inputs">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        id={`otp-${index}`}
+                        type="text"
+                        maxLength="1"
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        className="otp-input"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  className="btn-primary"
+                  onClick={handleVerifyAndProceed}
+                  disabled={loading}
+                >
+                  {loading ? 'Verifying...' : 'Verify OTP & Continue'}
+                </button>
+
+                <div className="resend-section">
+                  <p>Didn't receive the code?</p>
+                  <button
+                    className="btn-link"
+                    onClick={handleResendOTP}
+                    disabled={loading}
+                  >
+                    Resend OTP
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn-primary"
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                >
+                  {loading ? 'Sending...' : 'Send OTP'}
+                </button>
+                <p className="login-link">
+                  Already have an account? <a href="/">Sign In</a>
+                </p>
+              </>
+            )}
           </div>
         )}
 
-        {/* Step 2: Verify OTP */}
+        {/* Step 2 */}
         {step === 2 && (
-          <div className="form-step">
-            <div className="otp-icon">📧</div>
-            <h2>Verify Your Email</h2>
-            <p className="subtitle">
-              We've sent a 6-digit code to<br />
-              <strong>{formData.email}</strong>
-            </p>
-
-            <div className="otp-inputs">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  type="text"
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                  className="otp-input"
-                />
-              ))}
-            </div>
-
-            <button
-              className="btn-primary"
-              onClick={handleVerifyOTP}
-              disabled={loading}
-            >
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-
-            <div className="resend-section">
-              <p>Didn't receive the code?</p>
-              <button
-                className="btn-link"
-                onClick={handleResendOTP}
-                disabled={loading}
-              >
-                Resend OTP
-              </button>
-            </div>
-
-            <button
-              className="btn-secondary"
-              onClick={() => setStep(1)}
-              disabled={loading}
-            >
-              ← Back to Details
-            </button>
-          </div>
-        )}
-
-        {/* Step 3: Complete Registration */}
-        {step === 3 && (
           <div className="form-step">
             <div className="success-icon">✓</div>
             <h2>Almost There!</h2>
@@ -449,14 +410,6 @@ const handleSendOTP = async () => {
               disabled={loading}
             >
               {loading ? 'Creating Account...' : 'Complete Registration'}
-            </button>
-
-            <button
-              className="btn-secondary"
-              onClick={() => setStep(1)}
-              disabled={loading}
-            >
-              ← Edit Details
             </button>
           </div>
         )}
