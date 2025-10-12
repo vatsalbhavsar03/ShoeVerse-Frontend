@@ -1,38 +1,52 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Signup from "./component/Signup";
-import Login from "./component/Login"; // Capitalize to match filename convention
+import Login from "./component/Login";
 import UserDashboard from './component/user/UserDashboard';
 import AdminLayout from './component/admin/AdminLayout';
 import ProtectedRoute from './component/ProtectedRoute';
 import ForgotPassword from './component/ForgotPassword';
+
+import ListCategory from './component/admin/ListCategory';
+import ListBrand from './component/admin/ListBrand';
+import ListProduct from './component/admin/ListProduct';
+import ListOrder from './component/admin/ListOrder';
+import ListUser from './component/admin/ListUser';
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* public route */}
+        {/* Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgotpassword" element={<ForgotPassword />} />
 
         {/* User Dashboard Route */}
-          <Route
-            path="/user/userDashboard"
-            element={
-              <ProtectedRoute allowedRole="2">
-                <UserDashboard />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/user/userDashboard"
+          element={
+            <ProtectedRoute allowedRole="2">
+              <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Admin Routes with Layout */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRole="1">
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          ></Route>
+        {/* Admin Routes with Layout */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRole="1">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Nested Admin Routes */}
+          <Route path="listCategory" element={<ListCategory />} />
+          <Route path="listBrand" element={<ListBrand />} />
+          <Route path="listProduct" element={<ListProduct />} />
+          <Route path="listOrder" element={<ListOrder />} />
+          <Route path="listUser" element={<ListUser />} />
+        </Route>
       </Routes>
     </Router>
   );
