@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 import Signup from "./component/Signup";
 import Login from "./component/Login";
 import UserDashboard from './component/user/UserDashboard';
