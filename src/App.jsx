@@ -14,6 +14,8 @@ import ListProduct from './component/admin/ListProduct';
 import ListOrder from './component/admin/ListOrder';
 import ListUser from './component/admin/ListUser';
 
+import ProductDetail from './component/user/ProductDetail ';
+
 function App() {
   return (
     <Router>
@@ -29,9 +31,12 @@ function App() {
           element={
             <ProtectedRoute allowedRole="2">
               <UserDashboard />
+
             </ProtectedRoute>
           }
         />
+        
+        <Route path="/product/:id" element={<ProductDetail />} />
 
         {/* Admin Routes with Layout */}
         <Route
