@@ -313,6 +313,7 @@ const ListBrand = () => {
               <button 
                 className="btn btn-primary d-flex align-items-center gap-2"
                 onClick={handleShowModal}
+                style={{ width: 'auto', whiteSpace: 'nowrap' }}
               >
                 <BsPlusCircle />
                 <span>Add Brand</span>
@@ -461,11 +462,21 @@ const ListBrand = () => {
                       </div>
                     )}
                   </div>
-                  <div className="modal-footer">
+                  <div className="modal-footer d-flex justify-content-end gap-2">
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={handleCloseModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
+                    </button>
                     <button 
                       type="submit" 
                       className="btn btn-primary"
                       disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
                     >
                       {submitting ? (
                         <>
@@ -475,14 +486,6 @@ const ListBrand = () => {
                       ) : (
                         'Add Brand'
                       )}
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={handleCloseModal}
-                      disabled={submitting}
-                    >
-                      Cancel
                     </button>
                   </div>
                 </form>
@@ -563,11 +566,21 @@ const ListBrand = () => {
                       </div>
                     )}
                   </div>
-                  <div className="modal-footer">
+                  <div className="modal-footer d-flex justify-content-end gap-2">
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={handleCloseEditModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
+                    </button>
                     <button 
                       type="submit" 
                       className="btn btn-primary"
                       disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
                     >
                       {submitting ? (
                         <>
@@ -577,14 +590,6 @@ const ListBrand = () => {
                       ) : (
                         'Update Brand'
                       )}
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={handleCloseEditModal}
-                      disabled={submitting}
-                    >
-                      Cancel
                     </button>
                   </div>
                 </form>
@@ -630,12 +635,13 @@ const ListBrand = () => {
                   <p className="mb-0">Are you sure you want to delete this brand?</p>
                   <p className="text-muted mb-0 mt-2">This action cannot be undone.</p>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer d-flex justify-content-end gap-2">
                   <button 
                     type="button" 
                     className="btn btn-secondary" 
                     onClick={handleCloseDeleteModal}
                     disabled={submitting}
+                    style={{ minWidth: '120px', flex: '0 0 auto' }}
                   >
                     Cancel
                   </button>
@@ -644,6 +650,7 @@ const ListBrand = () => {
                     className="btn btn-danger"
                     onClick={handleDeleteConfirm}
                     disabled={submitting}
+                    style={{ minWidth: '120px', flex: '0 0 auto' }}
                   >
                     {submitting ? (
                       <>

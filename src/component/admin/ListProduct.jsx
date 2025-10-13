@@ -526,6 +526,7 @@ const ListProduct = () => {
               <button 
                 className="btn btn-primary d-flex align-items-center gap-2"
                 onClick={handleShowModal}
+                style={{ width: 'auto', whiteSpace: 'nowrap' }}
               >
                 <BsPlusCircle />
                 <span>Add Product</span>
@@ -956,11 +957,21 @@ const ListProduct = () => {
                       </div>
                     )}
                   </div>
-                  <div className="modal-footer">
+                  <div className="modal-footer d-flex justify-content-end gap-2">
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={showModal ? handleCloseModal : handleCloseEditModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
+                    </button>
                     <button 
                       type="submit" 
                       className="btn btn-primary"
                       disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
                     >
                       {submitting ? (
                         <>
@@ -970,14 +981,6 @@ const ListProduct = () => {
                       ) : (
                         showModal ? 'Add Product' : 'Update Product'
                       )}
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={showModal ? handleCloseModal : handleCloseEditModal}
-                      disabled={submitting}
-                    >
-                      Cancel
                     </button>
                   </div>
                 </form>
@@ -1023,12 +1026,13 @@ const ListProduct = () => {
                   <p className="mb-0">Are you sure you want to delete this product?</p>
                   <p className="text-muted mb-0 mt-2">This will also delete all associated colors and images. This action cannot be undone.</p>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer d-flex justify-content-end gap-2">
                   <button 
                     type="button" 
                     className="btn btn-secondary" 
                     onClick={handleCloseDeleteModal}
                     disabled={submitting}
+                    style={{ minWidth: '120px', flex: '0 0 auto' }}
                   >
                     Cancel
                   </button>
@@ -1037,6 +1041,7 @@ const ListProduct = () => {
                     className="btn btn-danger"
                     onClick={handleDeleteConfirm}
                     disabled={submitting}
+                    style={{ minWidth: '120px', flex: '0 0 auto' }}
                   >
                     {submitting ? (
                       <>
