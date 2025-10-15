@@ -463,15 +463,7 @@ const ListBrand = () => {
                     )}
                   </div>
                   <div className="modal-footer d-flex justify-content-end gap-2">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={handleCloseModal}
-                      disabled={submitting}
-                      style={{ minWidth: '120px', flex: '0 0 auto' }}
-                    >
-                      Cancel
-                    </button>
+                    
                     <button 
                       type="submit" 
                       className="btn btn-primary"
@@ -486,6 +478,15 @@ const ListBrand = () => {
                       ) : (
                         'Add Brand'
                       )}
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={handleCloseModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
                     </button>
                   </div>
                 </form>
@@ -560,6 +561,7 @@ const ListBrand = () => {
                         ))}
                       </select>
                     </div>
+                    
                     {validationError && (
                       <div className="alert alert-danger" role="alert">
                         {validationError}
@@ -567,15 +569,7 @@ const ListBrand = () => {
                     )}
                   </div>
                   <div className="modal-footer d-flex justify-content-end gap-2">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={handleCloseEditModal}
-                      disabled={submitting}
-                      style={{ minWidth: '120px', flex: '0 0 auto' }}
-                    >
-                      Cancel
-                    </button>
+                    
                     <button 
                       type="submit" 
                       className="btn btn-primary"
@@ -590,6 +584,15 @@ const ListBrand = () => {
                       ) : (
                         'Update Brand'
                       )}
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={handleCloseEditModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
                     </button>
                   </div>
                 </form>
@@ -636,15 +639,7 @@ const ListBrand = () => {
                   <p className="text-muted mb-0 mt-2">This action cannot be undone.</p>
                 </div>
                 <div className="modal-footer d-flex justify-content-end gap-2">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={handleCloseDeleteModal}
-                    disabled={submitting}
-                    style={{ minWidth: '120px', flex: '0 0 auto' }}
-                  >
-                    Cancel
-                  </button>
+                  
                   <button 
                     type="button" 
                     className="btn btn-danger"

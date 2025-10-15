@@ -76,7 +76,7 @@ const ListCategory = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm(categoryName)) {
       return;
     }
@@ -136,7 +136,7 @@ const ListCategory = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm(editCategoryName)) {
       return;
     }
@@ -258,7 +258,7 @@ const ListCategory = () => {
   return (
     <>
       <ToastContainer />
-      
+
       <div className="container">
         <div className="row mb-4">
           <div className="col-12">
@@ -267,7 +267,7 @@ const ListCategory = () => {
                 <h2 className="fw-bold mb-1">Categories</h2>
                 <p className="text-muted mb-0">Manage all product categories</p>
               </div>
-              <button 
+              <button
                 className="btn btn-primary d-flex align-items-center gap-2"
                 onClick={handleShowModal}
                 style={{ width: 'auto', whiteSpace: 'nowrap' }}
@@ -314,7 +314,7 @@ const ListCategory = () => {
                             </td>
                             <td className="py-3 text-end px-4">
                               <div className="btn-group btn-group-sm" role="group">
-                                <button 
+                                <button
                                   className="btn btn-outline-primary me-2"
                                   title="Edit"
                                   onClick={() => handleShowEditModal(category)}
@@ -322,7 +322,7 @@ const ListCategory = () => {
                                   <BsPencil className="me-1" />
                                   Edit
                                 </button>
-                                <button 
+                                <button
                                   className="btn btn-outline-danger"
                                   title="Delete"
                                   onClick={() => handleShowDeleteModal(category.categoryId)}
@@ -347,28 +347,28 @@ const ListCategory = () => {
       {/* Add Category Modal */}
       {showModal && (
         <>
-          <div 
-            className="modal-backdrop fade show" 
+          <div
+            className="modal-backdrop fade show"
             style={{ zIndex: 1040 }}
             onClick={handleCloseModal}
           ></div>
-          
-          <div 
-            className="modal fade show d-block" 
-            tabIndex="-1" 
+
+          <div
+            className="modal fade show d-block"
+            tabIndex="-1"
             style={{ zIndex: 1050 }}
             onClick={handleCloseModal}
           >
-            <div 
+            <div
               className="modal-dialog modal-dialog-centered"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">Add New Category</h5>
-                  <button 
-                    type="button" 
-                    className="btn-close" 
+                  <button
+                    type="button"
+                    className="btn-close"
                     onClick={handleCloseModal}
                     disabled={submitting}
                   ></button>
@@ -397,17 +397,9 @@ const ListCategory = () => {
                     </div>
                   </div>
                   <div className="modal-footer d-flex justify-content-end gap-2">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={handleCloseModal}
-                      disabled={submitting}
-                      style={{ minWidth: '120px', flex: '0 0 auto' }}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit" 
+                    
+                    <button
+                      type="submit"
                       className="btn btn-primary"
                       disabled={submitting}
                       style={{ minWidth: '120px', flex: '0 0 auto' }}
@@ -421,6 +413,15 @@ const ListCategory = () => {
                         'Add Category'
                       )}
                     </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleCloseModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </form>
               </div>
@@ -432,28 +433,28 @@ const ListCategory = () => {
       {/* Edit Category Modal */}
       {showEditModal && (
         <>
-          <div 
-            className="modal-backdrop fade show" 
+          <div
+            className="modal-backdrop fade show"
             style={{ zIndex: 1040 }}
             onClick={handleCloseEditModal}
           ></div>
-          
-          <div 
-            className="modal fade show d-block" 
-            tabIndex="-1" 
+
+          <div
+            className="modal fade show d-block"
+            tabIndex="-1"
             style={{ zIndex: 1050 }}
             onClick={handleCloseEditModal}
           >
-            <div 
+            <div
               className="modal-dialog modal-dialog-centered"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">Edit Category</h5>
-                  <button 
-                    type="button" 
-                    className="btn-close" 
+                  <button
+                    type="button"
+                    className="btn-close"
                     onClick={handleCloseEditModal}
                     disabled={submitting}
                   ></button>
@@ -482,17 +483,9 @@ const ListCategory = () => {
                     </div>
                   </div>
                   <div className="modal-footer d-flex justify-content-end gap-2">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      onClick={handleCloseEditModal}
-                      disabled={submitting}
-                      style={{ minWidth: '120px', flex: '0 0 auto' }}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit" 
+                    
+                    <button
+                      type="submit"
                       className="btn btn-primary"
                       disabled={submitting}
                       style={{ minWidth: '120px', flex: '0 0 auto' }}
@@ -506,6 +499,15 @@ const ListCategory = () => {
                         'Update Category'
                       )}
                     </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleCloseEditModal}
+                      disabled={submitting}
+                      style={{ minWidth: '120px', flex: '0 0 auto' }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </form>
               </div>
@@ -517,19 +519,19 @@ const ListCategory = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <>
-          <div 
-            className="modal-backdrop fade show" 
+          <div
+            className="modal-backdrop fade show"
             style={{ zIndex: 1040 }}
             onClick={handleCloseDeleteModal}
           ></div>
-          
-          <div 
-            className="modal fade show d-block" 
-            tabIndex="-1" 
+
+          <div
+            className="modal fade show d-block"
+            tabIndex="-1"
             style={{ zIndex: 1050 }}
             onClick={handleCloseDeleteModal}
           >
-            <div 
+            <div
               className="modal-dialog modal-dialog-centered"
               onClick={(e) => e.stopPropagation()}
             >
@@ -539,9 +541,9 @@ const ListCategory = () => {
                     <BsExclamationTriangleFill className="me-2" />
                     Confirm Delete
                   </h5>
-                  <button 
-                    type="button" 
-                    className="btn-close btn-close-white" 
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
                     onClick={handleCloseDeleteModal}
                     disabled={submitting}
                   ></button>
@@ -551,17 +553,8 @@ const ListCategory = () => {
                   <p className="text-muted mb-0 mt-2">This action cannot be undone.</p>
                 </div>
                 <div className="modal-footer d-flex justify-content-end gap-2">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={handleCloseDeleteModal}
-                    disabled={submitting}
-                    style={{ minWidth: '120px', flex: '0 0 auto' }}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-danger"
                     onClick={handleDeleteConfirm}
                     disabled={submitting}
@@ -580,6 +573,7 @@ const ListCategory = () => {
                     )}
                   </button>
                 </div>
+
               </div>
             </div>
           </div>

@@ -58,11 +58,11 @@ function AdminLayout() {
           {/* Menu */}
           <nav className="d-flex flex-column p-2 gap-1">
             <MenuItem icon="📊" label="Dashboard" page="dashboard" />
+            <MenuItem icon="👥" label="Customers" page="customers" />
             <MenuItem icon="📂" label="Category" page="category" />
             <MenuItem icon="🏷️" label="Brand" page="brand" />
             <MenuItem icon="📦" label="Products" page="products" />
             <MenuItem icon="🛒" label="Orders" page="orders" />
-            <MenuItem icon="👥" label="Customers" page="customers" />
          
           </nav>
         </div>
@@ -116,11 +116,12 @@ function AdminLayout() {
         {/* Main */}
         <main className="flex-grow-1 overflow-auto p-4">
           {currentPage === 'dashboard' && <AdmiDashBoard />}
+          {currentPage === 'customers' && <ListUser />}
           {currentPage === 'category' && <ListCategory />}
           {currentPage === 'brand' && <ListBrand />}
           {currentPage === 'products' && <ListProduct />}
           {currentPage === 'orders' && <ListOrder />}
-          {currentPage === 'customers' && <ListUser />}
+          
         </main>
       </div>
     </div>
