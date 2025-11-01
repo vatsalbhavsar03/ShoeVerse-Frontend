@@ -24,14 +24,9 @@ const ListUser = () => {
       }
 
       const data = await response.json();
-      
-      console.log('API Response:', data); // Debug log
 
-      if (data.success && data.Data) {
-        setUsers(data.Data);
-      } else if (data.success && data.data) {
-        // Fallback for lowercase 'data'
-        setUsers(data.data);
+      if (data.success && (data.Data || data.data)) {
+        setUsers(data.Data || data.data);
       } else {
         setUsers([]);
         throw new Error(data.Message || data.message || 'Failed to fetch users');
@@ -59,9 +54,23 @@ const ListUser = () => {
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch (error) {
+    } catch {
       return 'Invalid Date';
     }
+  };
+
+  // ✅ FIXED: handles both full URLs and relative paths safely
+  const getImageUrl = (path) => {
+    if (!path) return null;
+
+    // If already a full URL, return as-is
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+
+    // Ensure only one leading slash
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `https://localhost:7208${cleanPath}`;
   };
 
   if (loading) {
@@ -137,7 +146,7 @@ const ListUser = () => {
                             <td className="py-3">
                               {user.ProfileImage || user.profileImage ? (
                                 <img 
-                                  src={`https://localhost:7208${user.ProfileImage || user.profileImage}`} 
+                                  src={getImageUrl(user.ProfileImage || user.profileImage)} 
                                   alt={user.Username || user.username}
                                   style={{ 
                                     width: '40px', 

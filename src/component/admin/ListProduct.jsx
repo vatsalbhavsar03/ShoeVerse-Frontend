@@ -35,12 +35,130 @@
 //       hexCode: '#000000',
 //       stock: '',
 //       price: '',
+//       sizes: [],
 //       images: []
 //     }
 //   ]);
 
 //   const [editProductId, setEditProductId] = useState(null);
 //   const [deleteProductId, setDeleteProductId] = useState(null);
+
+//   const availableSizes = ['6', '7', '8', '9', '10', '11', '12', '13'];
+
+//   // Auto-calculate total stock from all color variants
+//   useEffect(() => {
+//     const totalStock = colors.reduce((sum, color) => {
+//       const colorStock = color.sizes.reduce((sizeSum, size) => {
+//         return sizeSum + (parseInt(size.stock) || 0);
+//       }, 0);
+//       return sum + colorStock;
+//     }, 0);
+    
+//     setFormData(prev => ({ ...prev, stock: totalStock }));
+//   }, [colors]);
+
+//   // Color name to hex mapping
+//   const colorNameToHex = {
+//     'black': '#000000',
+//     'white': '#FFFFFF',
+//     'red': '#FF0000',
+//     'green': '#008000',
+//     'blue': '#0000FF',
+//     'yellow': '#FFFF00',
+//     'orange': '#FFA500',
+//     'purple': '#800080',
+//     'pink': '#FFC0CB',
+//     'brown': '#A52A2A',
+//     'gray': '#808080',
+//     'grey': '#808080',
+//     'navy': '#000080',
+//     'teal': '#008080',
+//     'beige': '#F5F5DC',
+//     'turquoise': '#40E0D0',
+//     'violet': '#EE82EE',
+//     'indigo': '#4B0082',
+//     'coral': '#FF7F50',
+//     'salmon': '#FA8072',
+//     'khaki': '#F0E68C',
+//     'lavender': '#E6E6FA',
+//     'mint': '#98FF98',
+//     'peach': '#FFDAB9',
+//     'cream': '#FFFDD0',
+//     'ivory': '#FFFFF0',
+//     'tan': '#D2B48C',
+//     'burgundy': '#800020',
+//     'crimson': '#DC143C',
+//     'charcoal': '#36454F'
+//   };
+
+//   // Hex to color name mapping
+//   const hexToColorName = (hex) => {
+//     hex = hex.toUpperCase();
+    
+//     const colorMap = {
+//       '#000000': 'Black',
+//       '#FFFFFF': 'White',
+//       '#FF0000': 'Red',
+//       '#008000': 'Green',
+//       '#0000FF': 'Blue',
+//       '#FFFF00': 'Yellow',
+//       '#FFA500': 'Orange',
+//       '#800080': 'Purple',
+//       '#FFC0CB': 'Pink',
+//       '#A52A2A': 'Brown',
+//       '#808080': 'Gray',
+//       '#000080': 'Navy',
+//       '#008080': 'Teal',
+//       '#F5F5DC': 'Beige',
+//       '#40E0D0': 'Turquoise',
+//       '#EE82EE': 'Violet',
+//       '#4B0082': 'Indigo',
+//       '#FF7F50': 'Coral',
+//       '#FA8072': 'Salmon',
+//       '#F0E68C': 'Khaki',
+//       '#E6E6FA': 'Lavender',
+//       '#98FF98': 'Mint',
+//       '#FFDAB9': 'Peach',
+//       '#FFFDD0': 'Cream',
+//       '#FFFFF0': 'Ivory',
+//       '#D2B48C': 'Tan',
+//       '#800020': 'Burgundy',
+//       '#DC143C': 'Crimson',
+//       '#36454F': 'Charcoal'
+//     };
+
+//     if (colorMap[hex]) {
+//       return colorMap[hex];
+//     }
+
+//     let closestColor = '';
+//     let minDistance = Infinity;
+
+//     const hexToRgb = (h) => {
+//       const r = parseInt(h.slice(1, 3), 16);
+//       const g = parseInt(h.slice(3, 5), 16);
+//       const b = parseInt(h.slice(5, 7), 16);
+//       return { r, g, b };
+//     };
+
+//     const currentRgb = hexToRgb(hex);
+
+//     for (const [colorHex, colorName] of Object.entries(colorMap)) {
+//       const rgb = hexToRgb(colorHex);
+//       const distance = Math.sqrt(
+//         Math.pow(currentRgb.r - rgb.r, 2) +
+//         Math.pow(currentRgb.g - rgb.g, 2) +
+//         Math.pow(currentRgb.b - rgb.b, 2)
+//       );
+
+//       if (distance < minDistance) {
+//         minDistance = distance;
+//         closestColor = colorName;
+//       }
+//     }
+
+//     return closestColor || 'Custom Color';
+//   };
 
 //   useEffect(() => {
 //     fetchProducts();
@@ -104,7 +222,6 @@
 //     }
 //   };
 
-//   // Add Product Functions
 //   const handleShowModal = () => {
 //     setShowModal(true);
 //     resetForm();
@@ -135,6 +252,7 @@
 //         hexCode: '#000000',
 //         stock: '',
 //         price: '',
+//         sizes: [],
 //         images: []
 //       }
 //     ]);
@@ -158,10 +276,6 @@
 //       setValidationError('Valid price is required');
 //       return false;
 //     }
-//     if (!formData.stock || formData.stock < 0) {
-//       setValidationError('Valid stock is required');
-//       return false;
-//     }
 //     if (!formData.material.trim()) {
 //       setValidationError('Material is required');
 //       return false;
@@ -179,15 +293,20 @@
 //       return false;
 //     }
     
-//     // Validate colors
 //     for (let i = 0; i < colors.length; i++) {
 //       if (!colors[i].colorName.trim()) {
 //         setValidationError(`Color ${i + 1}: Color name is required`);
 //         return false;
 //       }
-//       if (!colors[i].stock || colors[i].stock < 0) {
-//         setValidationError(`Color ${i + 1}: Valid stock is required`);
+//       if (colors[i].sizes.length === 0) {
+//         setValidationError(`Color ${i + 1}: At least one size is required`);
 //         return false;
+//       }
+//       for (let j = 0; j < colors[i].sizes.length; j++) {
+//         if (!colors[i].sizes[j].stock || colors[i].sizes[j].stock < 0) {
+//           setValidationError(`Color ${i + 1}, Size ${colors[i].sizes[j].sizeName}: Valid stock is required`);
+//           return false;
+//         }
 //       }
 //       if (colors[i].images.length === 0) {
 //         setValidationError(`Color ${i + 1}: At least one image is required`);
@@ -211,7 +330,6 @@
 //     try {
 //       const formDataToSend = new FormData();
       
-//       // Add basic product data
 //       formDataToSend.append('Name', formData.name.trim());
 //       formDataToSend.append('Description', formData.description.trim());
 //       formDataToSend.append('Price', formData.price);
@@ -222,14 +340,22 @@
 //       formDataToSend.append('Brand_ID', formData.brandId);
 //       formDataToSend.append('IsActive', formData.isActive);
 
-//       // Add colors data
 //       colors.forEach((color, colorIndex) => {
 //         formDataToSend.append(`Colors[${colorIndex}].ColorName`, color.colorName);
 //         formDataToSend.append(`Colors[${colorIndex}].HexCode`, color.hexCode);
-//         formDataToSend.append(`Colors[${colorIndex}].Stock`, color.stock);
+        
+//         // Calculate total stock for this color from all its sizes
+//         const colorTotalStock = color.sizes.reduce((sum, size) => sum + (parseInt(size.stock) || 0), 0);
+//         formDataToSend.append(`Colors[${colorIndex}].Stock`, colorTotalStock);
 //         formDataToSend.append(`Colors[${colorIndex}].Price`, color.price || formData.price);
 
-//         // Add images for this color
+//         // Add sizes
+//         color.sizes.forEach((size, sizeIndex) => {
+//           formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].SizeName`, size.sizeName);
+//           formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].Stock`, size.stock);
+//         });
+
+//         // Add images
 //         color.images.forEach((img, imgIndex) => {
 //           if (img.file) {
 //             formDataToSend.append('files', img.file);
@@ -269,7 +395,6 @@
 //     }
 //   };
 
-//   // Edit Product Functions
 //   const handleShowEditModal = async (product) => {
 //     setEditProductId(product.productId);
     
@@ -285,11 +410,9 @@
 //       isActive: product.isActive
 //     });
 
-//     // Filter brands based on category
 //     const filtered = brands.filter(b => b.categoryId === product.categoryId);
 //     setFilteredBrands(filtered);
 
-//     // Set colors with existing images
 //     if (product.productColors && product.productColors.length > 0) {
 //       const existingColors = product.productColors.map(color => ({
 //         colorId: color.colorId,
@@ -297,6 +420,11 @@
 //         hexCode: color.hexCode,
 //         stock: color.stock,
 //         price: color.price,
+//         sizes: color.productSizes ? color.productSizes.map(size => ({
+//           sizeId: size.sizeId,
+//           sizeName: size.sizeName,
+//           stock: size.stock
+//         })) : [],
 //         images: color.productImages ? color.productImages.map(img => ({
 //           imageId: img.imageId,
 //           preview: `https://localhost:7208${img.imageUrl}`,
@@ -346,9 +474,21 @@
 //         }
 //         formDataToSend.append(`Colors[${colorIndex}].ColorName`, color.colorName);
 //         formDataToSend.append(`Colors[${colorIndex}].HexCode`, color.hexCode);
-//         formDataToSend.append(`Colors[${colorIndex}].Stock`, color.stock);
+        
+//         const colorTotalStock = color.sizes.reduce((sum, size) => sum + (parseInt(size.stock) || 0), 0);
+//         formDataToSend.append(`Colors[${colorIndex}].Stock`, colorTotalStock);
 //         formDataToSend.append(`Colors[${colorIndex}].Price`, color.price || formData.price);
 
+//         // Add sizes
+//         color.sizes.forEach((size, sizeIndex) => {
+//           if (size.sizeId) {
+//             formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].Size_ID`, size.sizeId);
+//           }
+//           formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].SizeName`, size.sizeName);
+//           formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].Stock`, size.stock);
+//         });
+
+//         // Add images
 //         color.images.forEach((img, imgIndex) => {
 //           if (img.file) {
 //             formDataToSend.append('files', img.file);
@@ -391,7 +531,6 @@
 //     }
 //   };
 
-//   // Delete Product Functions
 //   const handleShowDeleteModal = (productId) => {
 //     setDeleteProductId(productId);
 //     setShowDeleteModal(true);
@@ -435,7 +574,6 @@
 //     }
 //   };
 
-//   // Toggle Active Status
 //   const handleToggleActive = async (productId, currentStatus) => {
 //     try {
 //       const response = await fetch(`https://localhost:7208/api/Product/ToggleActive/${productId}`, {
@@ -459,13 +597,13 @@
 //     }
 //   };
 
-//   // Color Management Functions
 //   const addColor = () => {
 //     setColors([...colors, {
 //       colorName: '',
 //       hexCode: '#000000',
 //       stock: '',
 //       price: '',
+//       sizes: [],
 //       images: []
 //     }]);
 //   };
@@ -474,6 +612,34 @@
 //     if (colors.length > 1) {
 //       const newColors = colors.filter((_, i) => i !== index);
 //       setColors(newColors);
+//     }
+//   };
+
+//   const handleColorNameChange = (index, value) => {
+//     const newColors = [...colors];
+//     newColors[index].colorName = value;
+    
+//     const lowerCaseName = value.toLowerCase().trim();
+//     if (colorNameToHex[lowerCaseName]) {
+//       newColors[index].hexCode = colorNameToHex[lowerCaseName];
+//     }
+    
+//     setColors(newColors);
+//     if (validationError) {
+//       setValidationError('');
+//     }
+//   };
+
+//   const handleHexCodeChange = (index, value) => {
+//     const newColors = [...colors];
+//     newColors[index].hexCode = value;
+    
+//     const colorName = hexToColorName(value);
+//     newColors[index].colorName = colorName;
+    
+//     setColors(newColors);
+//     if (validationError) {
+//       setValidationError('');
 //     }
 //   };
 
@@ -486,7 +652,30 @@
 //     }
 //   };
 
-//   // Image Management Functions
+//   const addSize = (colorIndex) => {
+//     const newColors = [...colors];
+//     newColors[colorIndex].sizes.push({
+//       sizeName: '',
+//       stock: ''
+//     });
+//     setColors(newColors);
+//   };
+
+//   const removeSize = (colorIndex, sizeIndex) => {
+//     const newColors = [...colors];
+//     newColors[colorIndex].sizes.splice(sizeIndex, 1);
+//     setColors(newColors);
+//   };
+
+//   const updateSize = (colorIndex, sizeIndex, field, value) => {
+//     const newColors = [...colors];
+//     newColors[colorIndex].sizes[sizeIndex][field] = value;
+//     setColors(newColors);
+//     if (validationError) {
+//       setValidationError('');
+//     }
+//   };
+
 //   const handleImageChange = (colorIndex, e) => {
 //     const files = Array.from(e.target.files);
 //     const newColors = [...colors];
@@ -703,7 +892,6 @@
 //                 </div>
 //                 <form onSubmit={showModal ? handleSubmit : handleEditSubmit}>
 //                   <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-//                     {/* Basic Product Information */}
 //                     <h6 className="fw-bold mb-3">Basic Information</h6>
 //                     <div className="row">
 //                       <div className="col-md-6 mb-3">
@@ -769,17 +957,18 @@
 //                       </div>
 //                       <div className="col-md-4 mb-3">
 //                         <label htmlFor="stock" className="form-label">
-//                           Stock <span className="text-danger">*</span>
+//                           Total Stock (Auto-calculated) <span className="text-danger">*</span>
 //                         </label>
 //                         <input
 //                           type="number"
-//                           className="form-control"
+//                           className="form-control bg-light"
 //                           id="stock"
 //                           placeholder="0"
 //                           value={formData.stock}
-//                           onChange={(e) => handleInputChange('stock', e.target.value)}
-//                           disabled={submitting}
+//                           disabled={true}
+//                           style={{ cursor: 'not-allowed' }}
 //                         />
+//                         <small className="text-muted">Sum of all size stocks</small>
 //                       </div>
 //                       <div className="col-md-4 mb-3">
 //                         <label htmlFor="gender" className="form-label">
@@ -858,7 +1047,6 @@
 
 //                     <hr />
 
-//                     {/* Colors and Images Section */}
 //                     <div className="d-flex justify-content-between align-items-center mb-3">
 //                       <h6 className="fw-bold mb-0">Color Variants</h6>
 //                       <button 
@@ -891,7 +1079,7 @@
 //                           </div>
 
 //                           <div className="row">
-//                             <div className="col-md-4 mb-3">
+//                             <div className="col-md-5 mb-3">
 //                               <label className="form-label">
 //                                 Color Name <span className="text-danger">*</span>
 //                               </label>
@@ -900,9 +1088,10 @@
 //                                 className="form-control"
 //                                 placeholder="e.g., Red, Blue, Black"
 //                                 value={color.colorName}
-//                                 onChange={(e) => updateColor(colorIndex, 'colorName', e.target.value)}
+//                                 onChange={(e) => handleColorNameChange(colorIndex, e.target.value)}
 //                                 disabled={submitting}
 //                               />
+//                               <small className="text-muted">Enter name to auto-set hex code</small>
 //                             </div>
 //                             <div className="col-md-2 mb-3">
 //                               <label className="form-label">
@@ -912,25 +1101,13 @@
 //                                 type="color"
 //                                 className="form-control form-control-color w-100"
 //                                 value={color.hexCode}
-//                                 onChange={(e) => updateColor(colorIndex, 'hexCode', e.target.value)}
+//                                 onChange={(e) => handleHexCodeChange(colorIndex, e.target.value)}
 //                                 disabled={submitting}
 //                                 style={{ height: '38px' }}
 //                               />
+//                               <small className="text-muted">Pick to auto-set name</small>
 //                             </div>
-//                             <div className="col-md-3 mb-3">
-//                               <label className="form-label">
-//                                 Stock <span className="text-danger">*</span>
-//                               </label>
-//                               <input
-//                                 type="number"
-//                                 className="form-control"
-//                                 placeholder="0"
-//                                 value={color.stock}
-//                                 onChange={(e) => updateColor(colorIndex, 'stock', e.target.value)}
-//                                 disabled={submitting}
-//                               />
-//                             </div>
-//                             <div className="col-md-3 mb-3">
+//                             <div className="col-md-5 mb-3">
 //                               <label className="form-label">
 //                                 Price (Optional)
 //                               </label>
@@ -946,7 +1123,61 @@
 //                             </div>
 //                           </div>
 
-//                           {/* Image Upload */}
+//                           <div className="mb-3">
+//                             <div className="d-flex justify-content-between align-items-center mb-2">
+//                               <label className="form-label mb-0">
+//                                 Sizes & Stock <span className="text-danger">*</span>
+//                               </label>
+//                               <button 
+//                                 type="button" 
+//                                 className="btn btn-sm btn-outline-secondary"
+//                                 onClick={() => addSize(colorIndex)}
+//                                 disabled={submitting}
+//                               >
+//                                 <BsPlusCircle className="me-1" />
+//                                 Add Size
+//                               </button>
+//                             </div>
+                            
+//                             {color.sizes.map((size, sizeIndex) => (
+//                               <div key={sizeIndex} className="row mb-2">
+//                                 <div className="col-md-5">
+//                                   <select
+//                                     className="form-select form-select-sm"
+//                                     value={size.sizeName}
+//                                     onChange={(e) => updateSize(colorIndex, sizeIndex, 'sizeName', e.target.value)}
+//                                     disabled={submitting}
+//                                   >
+//                                     <option value="">Select Size</option>
+//                                     {availableSizes.map(s => (
+//                                       <option key={s} value={s}>{s}</option>
+//                                     ))}
+//                                   </select>
+//                                 </div>
+//                                 <div className="col-md-5">
+//                                   <input
+//                                     type="number"
+//                                     className="form-control form-control-sm"
+//                                     placeholder="Stock"
+//                                     value={size.stock}
+//                                     onChange={(e) => updateSize(colorIndex, sizeIndex, 'stock', e.target.value)}
+//                                     disabled={submitting}
+//                                   />
+//                                 </div>
+//                                 <div className="col-md-2">
+//                                   <button 
+//                                     type="button" 
+//                                     className="btn btn-sm btn-outline-danger w-100"
+//                                     onClick={() => removeSize(colorIndex, sizeIndex)}
+//                                     disabled={submitting}
+//                                   >
+//                                     <BsTrash />
+//                                   </button>
+//                                 </div>
+//                               </div>
+//                             ))}
+//                           </div>
+
 //                           <div className="mb-3">
 //                             <label className="form-label">
 //                               Images <span className="text-danger">*</span>
@@ -962,7 +1193,6 @@
 //                             <small className="text-muted">First image will be the main display image</small>
 //                           </div>
 
-//                           {/* Image Preview */}
 //                           {color.images.length > 0 && (
 //                             <div className="d-flex flex-wrap gap-2 mt-2">
 //                               {color.images.map((img, imgIndex) => (
@@ -1068,7 +1298,7 @@
 //                 </div>
 //                 <div className="modal-body">
 //                   <p className="mb-0">Are you sure you want to delete this product?</p>
-//                   <p className="text-muted mb-0 mt-2">This will also delete all associated colors and images. This action cannot be undone.</p>
+//                   <p className="text-muted mb-0 mt-2">This will also delete all associated colors, sizes, and images. This action cannot be undone.</p>
 //                 </div>
 //                 <div className="modal-footer d-flex justify-content-end gap-2">
 //                   <button 
@@ -1090,6 +1320,15 @@
 //                       </>
 //                     )}
 //                   </button>
+//                   <button 
+//                     type="button" 
+//                     className="btn btn-secondary" 
+//                     onClick={handleCloseDeleteModal}
+//                     disabled={submitting}
+//                     style={{ minWidth: '120px', flex: '0 0 auto' }}
+//                   >
+//                     Cancel
+//                   </button>
 //                 </div>
 //               </div>
 //             </div>
@@ -1101,6 +1340,7 @@
 // };
 
 // export default ListProduct;
+
 
 import React, { useState, useEffect } from 'react';
 import { BsPlusCircle, BsExclamationTriangleFill, BsFolderX, BsPencil, BsTrash, BsImage, BsX } from 'react-icons/bs';
@@ -1139,6 +1379,7 @@ const ListProduct = () => {
       hexCode: '#000000',
       stock: '',
       price: '',
+      sizes: [],
       images: []
     }
   ]);
@@ -1146,17 +1387,21 @@ const ListProduct = () => {
   const [editProductId, setEditProductId] = useState(null);
   const [deleteProductId, setDeleteProductId] = useState(null);
 
+  const availableSizes = ['6', '7', '8', '9', '10', '11', '12', '13'];
+
   // Auto-calculate total stock from all color variants
   useEffect(() => {
     const totalStock = colors.reduce((sum, color) => {
-      const stock = parseInt(color.stock) || 0;
-      return sum + stock;
+      const colorStock = color.sizes.reduce((sizeSum, size) => {
+        return sizeSum + (parseInt(size.stock) || 0);
+      }, 0);
+      return sum + colorStock;
     }, 0);
     
     setFormData(prev => ({ ...prev, stock: totalStock }));
   }, [colors]);
 
-  // Color name to hex mapping - Common colors
+  // Color name to hex mapping
   const colorNameToHex = {
     'black': '#000000',
     'white': '#FFFFFF',
@@ -1172,14 +1417,6 @@ const ListProduct = () => {
     'grey': '#808080',
     'navy': '#000080',
     'teal': '#008080',
-    'lime': '#00FF00',
-    'aqua': '#00FFFF',
-    'maroon': '#800000',
-    'olive': '#808000',
-    'silver': '#C0C0C0',
-    'gold': '#FFD700',
-    'cyan': '#00FFFF',
-    'magenta': '#FF00FF',
     'beige': '#F5F5DC',
     'turquoise': '#40E0D0',
     'violet': '#EE82EE',
@@ -1195,21 +1432,6 @@ const ListProduct = () => {
     'tan': '#D2B48C',
     'burgundy': '#800020',
     'crimson': '#DC143C',
-    'rose': '#FF007F',
-    'sky blue': '#87CEEB',
-    'forest green': '#228B22',
-    'royal blue': '#4169E1',
-    'dark blue': '#00008B',
-    'light blue': '#ADD8E6',
-    'dark green': '#006400',
-    'light green': '#90EE90',
-    'dark red': '#8B0000',
-    'light pink': '#FFB6C1',
-    'dark purple': '#301934',
-    'light yellow': '#FFFFE0',
-    'dark orange': '#FF8C00',
-    'light gray': '#D3D3D3',
-    'dark gray': '#A9A9A9',
     'charcoal': '#36454F'
   };
 
@@ -1231,13 +1453,6 @@ const ListProduct = () => {
       '#808080': 'Gray',
       '#000080': 'Navy',
       '#008080': 'Teal',
-      '#00FF00': 'Lime',
-      '#00FFFF': 'Aqua',
-      '#800000': 'Maroon',
-      '#808000': 'Olive',
-      '#C0C0C0': 'Silver',
-      '#FFD700': 'Gold',
-      '#FF00FF': 'Magenta',
       '#F5F5DC': 'Beige',
       '#40E0D0': 'Turquoise',
       '#EE82EE': 'Violet',
@@ -1253,21 +1468,6 @@ const ListProduct = () => {
       '#D2B48C': 'Tan',
       '#800020': 'Burgundy',
       '#DC143C': 'Crimson',
-      '#FF007F': 'Rose',
-      '#87CEEB': 'Sky Blue',
-      '#228B22': 'Forest Green',
-      '#4169E1': 'Royal Blue',
-      '#00008B': 'Dark Blue',
-      '#ADD8E6': 'Light Blue',
-      '#006400': 'Dark Green',
-      '#90EE90': 'Light Green',
-      '#8B0000': 'Dark Red',
-      '#FFB6C1': 'Light Pink',
-      '#301934': 'Dark Purple',
-      '#FFFFE0': 'Light Yellow',
-      '#FF8C00': 'Dark Orange',
-      '#D3D3D3': 'Light Gray',
-      '#A9A9A9': 'Dark Gray',
       '#36454F': 'Charcoal'
     };
 
@@ -1396,6 +1596,7 @@ const ListProduct = () => {
         hexCode: '#000000',
         stock: '',
         price: '',
+        sizes: [],
         images: []
       }
     ]);
@@ -1441,9 +1642,15 @@ const ListProduct = () => {
         setValidationError(`Color ${i + 1}: Color name is required`);
         return false;
       }
-      if (!colors[i].stock || colors[i].stock < 0) {
-        setValidationError(`Color ${i + 1}: Valid stock is required`);
+      if (colors[i].sizes.length === 0) {
+        setValidationError(`Color ${i + 1}: At least one size is required`);
         return false;
+      }
+      for (let j = 0; j < colors[i].sizes.length; j++) {
+        if (!colors[i].sizes[j].stock || colors[i].sizes[j].stock < 0) {
+          setValidationError(`Color ${i + 1}, Size ${colors[i].sizes[j].sizeName}: Valid stock is required`);
+          return false;
+        }
       }
       if (colors[i].images.length === 0) {
         setValidationError(`Color ${i + 1}: At least one image is required`);
@@ -1480,8 +1687,15 @@ const ListProduct = () => {
       colors.forEach((color, colorIndex) => {
         formDataToSend.append(`Colors[${colorIndex}].ColorName`, color.colorName);
         formDataToSend.append(`Colors[${colorIndex}].HexCode`, color.hexCode);
-        formDataToSend.append(`Colors[${colorIndex}].Stock`, color.stock);
+        
+        const colorTotalStock = color.sizes.reduce((sum, size) => sum + (parseInt(size.stock) || 0), 0);
+        formDataToSend.append(`Colors[${colorIndex}].Stock`, colorTotalStock);
         formDataToSend.append(`Colors[${colorIndex}].Price`, color.price || formData.price);
+
+        color.sizes.forEach((size, sizeIndex) => {
+          formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].SizeName`, size.sizeName);
+          formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].Stock`, size.stock);
+        });
 
         color.images.forEach((img, imgIndex) => {
           if (img.file) {
@@ -1547,8 +1761,14 @@ const ListProduct = () => {
         hexCode: color.hexCode,
         stock: color.stock,
         price: color.price,
+        sizes: color.productSizes ? color.productSizes.map(size => ({
+          sizeId: size.sizeId,
+          sizeName: size.sizeName,
+          stock: size.stock
+        })) : [],
         images: color.productImages ? color.productImages.map(img => ({
           imageId: img.imageId,
+          imageUrl: img.imageUrl, // Store the actual URL path
           preview: `https://localhost:7208${img.imageUrl}`,
           isMainImage: img.isMainImage,
           existing: true
@@ -1590,22 +1810,38 @@ const ListProduct = () => {
       formDataToSend.append('Brand_ID', formData.brandId);
       formDataToSend.append('IsActive', formData.isActive);
 
+      let fileIndex = 0; // Track file uploads separately
+      
       colors.forEach((color, colorIndex) => {
         if (color.colorId) {
           formDataToSend.append(`Colors[${colorIndex}].Color_ID`, color.colorId);
         }
         formDataToSend.append(`Colors[${colorIndex}].ColorName`, color.colorName);
         formDataToSend.append(`Colors[${colorIndex}].HexCode`, color.hexCode);
-        formDataToSend.append(`Colors[${colorIndex}].Stock`, color.stock);
+        
+        const colorTotalStock = color.sizes.reduce((sum, size) => sum + (parseInt(size.stock) || 0), 0);
+        formDataToSend.append(`Colors[${colorIndex}].Stock`, colorTotalStock);
         formDataToSend.append(`Colors[${colorIndex}].Price`, color.price || formData.price);
 
+        // Add sizes
+        color.sizes.forEach((size, sizeIndex) => {
+          if (size.sizeId) {
+            formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].Size_ID`, size.sizeId);
+          }
+          formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].SizeName`, size.sizeName);
+          formDataToSend.append(`Colors[${colorIndex}].Sizes[${sizeIndex}].Stock`, size.stock);
+        });
+
+        // Add images - FIXED SECTION
         color.images.forEach((img, imgIndex) => {
           if (img.file) {
+            // New image uploaded
             formDataToSend.append('files', img.file);
             formDataToSend.append(`Colors[${colorIndex}].Images[${imgIndex}].ImageUrl`, img.file.name);
-          } else if (img.existing) {
+          } else if (img.existing && img.imageId) {
+            // Existing image - keep it
             formDataToSend.append(`Colors[${colorIndex}].Images[${imgIndex}].Image_ID`, img.imageId);
-            formDataToSend.append(`Colors[${colorIndex}].Images[${imgIndex}].ImageUrl`, img.preview);
+            formDataToSend.append(`Colors[${colorIndex}].Images[${imgIndex}].ImageUrl`, img.imageUrl); // Use original URL, not preview
           }
           formDataToSend.append(`Colors[${colorIndex}].Images[${imgIndex}].IsMainImage`, imgIndex === 0);
         });
@@ -1636,6 +1872,7 @@ const ListProduct = () => {
         position: "top-right",
         autoClose: 3000,
       });
+      console.error('Update error:', err);
     } finally {
       setSubmitting(false);
     }
@@ -1713,6 +1950,7 @@ const ListProduct = () => {
       hexCode: '#000000',
       stock: '',
       price: '',
+      sizes: [],
       images: []
     }]);
   };
@@ -1761,6 +1999,30 @@ const ListProduct = () => {
     }
   };
 
+  const addSize = (colorIndex) => {
+    const newColors = [...colors];
+    newColors[colorIndex].sizes.push({
+      sizeName: '',
+      stock: ''
+    });
+    setColors(newColors);
+  };
+
+  const removeSize = (colorIndex, sizeIndex) => {
+    const newColors = [...colors];
+    newColors[colorIndex].sizes.splice(sizeIndex, 1);
+    setColors(newColors);
+  };
+
+  const updateSize = (colorIndex, sizeIndex, field, value) => {
+    const newColors = [...colors];
+    newColors[colorIndex].sizes[sizeIndex][field] = value;
+    setColors(newColors);
+    if (validationError) {
+      setValidationError('');
+    }
+  };
+
   const handleImageChange = (colorIndex, e) => {
     const files = Array.from(e.target.files);
     const newColors = [...colors];
@@ -1770,7 +2032,8 @@ const ListProduct = () => {
       reader.onloadend = () => {
         newColors[colorIndex].images.push({
           file: file,
-          preview: reader.result
+          preview: reader.result,
+          existing: false
         });
         setColors([...newColors]);
       };
@@ -2053,7 +2316,7 @@ const ListProduct = () => {
                           disabled={true}
                           style={{ cursor: 'not-allowed' }}
                         />
-                        <small className="text-muted">Sum of all color variant stocks</small>
+                        <small className="text-muted">Sum of all size stocks</small>
                       </div>
                       <div className="col-md-4 mb-3">
                         <label htmlFor="gender" className="form-label">
@@ -2164,7 +2427,7 @@ const ListProduct = () => {
                           </div>
 
                           <div className="row">
-                            <div className="col-md-4 mb-3">
+                            <div className="col-md-5 mb-3">
                               <label className="form-label">
                                 Color Name <span className="text-danger">*</span>
                               </label>
@@ -2192,20 +2455,7 @@ const ListProduct = () => {
                               />
                               <small className="text-muted">Pick to auto-set name</small>
                             </div>
-                            <div className="col-md-3 mb-3">
-                              <label className="form-label">
-                                Stock <span className="text-danger">*</span>
-                              </label>
-                              <input
-                                type="number"
-                                className="form-control"
-                                placeholder="0"
-                                value={color.stock}
-                                onChange={(e) => updateColor(colorIndex, 'stock', e.target.value)}
-                                disabled={submitting}
-                              />
-                            </div>
-                            <div className="col-md-3 mb-3">
+                            <div className="col-md-5 mb-3">
                               <label className="form-label">
                                 Price (Optional)
                               </label>
@@ -2219,6 +2469,61 @@ const ListProduct = () => {
                                 disabled={submitting}
                               />
                             </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <label className="form-label mb-0">
+                                Sizes & Stock <span className="text-danger">*</span>
+                              </label>
+                              <button 
+                                type="button" 
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => addSize(colorIndex)}
+                                disabled={submitting}
+                              >
+                                <BsPlusCircle className="me-1" />
+                                Add Size
+                              </button>
+                            </div>
+                            
+                            {color.sizes.map((size, sizeIndex) => (
+                              <div key={sizeIndex} className="row mb-2">
+                                <div className="col-md-5">
+                                  <select
+                                    className="form-select form-select-sm"
+                                    value={size.sizeName}
+                                    onChange={(e) => updateSize(colorIndex, sizeIndex, 'sizeName', e.target.value)}
+                                    disabled={submitting}
+                                  >
+                                    <option value="">Select Size</option>
+                                    {availableSizes.map(s => (
+                                      <option key={s} value={s}>{s}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="col-md-5">
+                                  <input
+                                    type="number"
+                                    className="form-control form-control-sm"
+                                    placeholder="Stock"
+                                    value={size.stock}
+                                    onChange={(e) => updateSize(colorIndex, sizeIndex, 'stock', e.target.value)}
+                                    disabled={submitting}
+                                  />
+                                </div>
+                                <div className="col-md-2">
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-sm btn-outline-danger w-100"
+                                    onClick={() => removeSize(colorIndex, sizeIndex)}
+                                    disabled={submitting}
+                                  >
+                                    <BsTrash />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
 
                           <div className="mb-3">
@@ -2341,7 +2646,7 @@ const ListProduct = () => {
                 </div>
                 <div className="modal-body">
                   <p className="mb-0">Are you sure you want to delete this product?</p>
-                  <p className="text-muted mb-0 mt-2">This will also delete all associated colors and images. This action cannot be undone.</p>
+                  <p className="text-muted mb-0 mt-2">This will also delete all associated colors, sizes, and images. This action cannot be undone.</p>
                 </div>
                 <div className="modal-footer d-flex justify-content-end gap-2">
                   <button 
@@ -2363,6 +2668,15 @@ const ListProduct = () => {
                       </>
                     )}
                   </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={handleCloseDeleteModal}
+                    disabled={submitting}
+                    style={{ minWidth: '120px', flex: '0 0 auto' }}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
@@ -2374,4 +2688,3 @@ const ListProduct = () => {
 };
 
 export default ListProduct;
-

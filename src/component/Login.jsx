@@ -1,4 +1,3 @@
-// Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
@@ -15,7 +14,6 @@ const Login = () => {
   const navigate = useNavigate();
   const API_BASE_URL = 'https://localhost:7208/api/User';
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -27,7 +25,6 @@ const Login = () => {
     }
   };
 
-  // Validate form
   const validateForm = () => {
     const newErrors = {};
     if (!formData.email.trim()) {
@@ -46,7 +43,6 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle login
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -70,6 +66,20 @@ const Login = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('roleId', data.roleId);
 
+        // Save complete user data
+        const userData = {
+          userId: data.userId,
+          name: data.username,
+          email: data.email,
+          phoneNo: data.phoneNo || '',
+          profileImage: data.profileImage || ''
+        };
+
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        // Verify it was saved
+        const verification = localStorage.getItem('user');
+
         setMessage({ type: 'success', text: 'Login successful!' });
 
         // Redirect based on roleId
@@ -86,6 +96,7 @@ const Login = () => {
         setMessage({ type: 'error', text: data.message || 'Login failed.' });
       }
     } catch (error) {
+      console.error('Login error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -95,18 +106,15 @@ const Login = () => {
   return (
     <div className="registration-container">
       <div className="registration-card">
-        {/* Header */}
         <div className="login-header">
           <h2>Welcome Back</h2>
           <p className="subtitle">Sign in to your account</p>
         </div>
 
-        {/* Message Display */}
         {message.text && (
           <div className={`message ${message.type}`}>{message.text}</div>
         )}
 
-        {/* Login Form */}
         <form className="form-step" onSubmit={handleLogin}>
           <div className="form-group">
             <label htmlFor="email">Email Address *</label>
@@ -142,7 +150,6 @@ const Login = () => {
             )}
           </div>
 
-          {/* Forgot Password link */}
           <div className="forgot-password-link">
             <span
               style={{ color: '#007bff', cursor: 'pointer' }}
@@ -156,9 +163,8 @@ const Login = () => {
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
 
-          {/* Signup redirect */}
           <p className="login-link">
-            Don’t have an account?{' '}
+            Don't have an account?{' '}
             <span
               className="signup-link"
               style={{ color: '#007bff', cursor: 'pointer' }}
