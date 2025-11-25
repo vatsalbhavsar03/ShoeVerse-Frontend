@@ -7,15 +7,21 @@ import 'react-toastify/dist/ReactToastify.css';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isWishlist, setIsWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [sizeStocks, setSizeStocks] = useState({});
+  const [loadingStock, setLoadingStock] = useState(false);
+
+  const userId = JSON.parse(localStorage.getItem('user'))?.userId || 1;
+  const API_BASE_URL = 'https://localhost:7208/api';
 
   useEffect(() => {
     fetchProductDetails();
@@ -25,18 +31,25 @@ const ProductDetail = () => {
   useEffect(() => {
     if (product) {
       fetchRelatedProducts();
+      checkWishlistStatus();
     }
   }, [product]);
+
+  // Fetch size-specific stock when color changes
+  useEffect(() => {
+    if (selectedColor) {
+      fetchSizeStocks();
+    }
+  }, [selectedColor]);
 
   const fetchProductDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://localhost:7208/api/Product/GetProductById/${id}`);
+      const response = await fetch(`${API_BASE_URL}/Product/GetProductById/${id}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setProduct(data.product);
-        // Set default color to first available
         if (data.product.productColors && data.product.productColors.length > 0) {
           setSelectedColor(data.product.productColors[0]);
         }
@@ -51,13 +64,49 @@ const ProductDetail = () => {
     }
   };
 
+  // Check if product is in wishlist
+  const checkWishlistStatus = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wishlist/user/${userId}`);
+      if (response.ok) {
+        const wishlistData = await response.json();
+        const isInWishlist = wishlistData.some(item => item.productId === parseInt(id));
+        setIsWishlist(isInWishlist);
+      }
+    } catch (error) {
+      console.error('Error checking wishlist:', error);
+    }
+  };
+
+  // Fetch actual stock for each size based on selected color
+  const fetchSizeStocks = async () => {
+    if (!selectedColor || !selectedColor.productSizes) return;
+
+    setLoadingStock(true);
+    const stockData = {};
+
+    try {
+      for (const size of selectedColor.productSizes) {
+        stockData[size.sizeId] = {
+          stock: size.stock || 0,
+          isAvailable: size.isAvailable || false,
+          sizeName: size.sizeName
+        };
+      }
+      setSizeStocks(stockData);
+    } catch (error) {
+      console.error('Error fetching size stocks:', error);
+    } finally {
+      setLoadingStock(false);
+    }
+  };
+
   const fetchRelatedProducts = async () => {
     try {
-      const response = await fetch('https://localhost:7208/api/Product/GetAllProducts');
+      const response = await fetch(`${API_BASE_URL}/Product/GetAllProducts`);
       const data = await response.json();
-      
+
       if (data.success) {
-        // Get products from same category, excluding current product
         const related = data.products
           .filter(p => p.isActive && p.categoryId === product.categoryId && p.productId !== product.productId)
           .slice(0, 4);
@@ -70,7 +119,14 @@ const ProductDetail = () => {
 
   const handleColorChange = (color) => {
     setSelectedColor(color);
+    setSelectedSize(null);
+    setQuantity(1);
     setCurrentImageIndex(0);
+  };
+
+  const handleSizeChange = (size) => {
+    setSelectedSize(size);
+    setQuantity(1);
   };
 
   const getCurrentImages = () => {
@@ -92,22 +148,126 @@ const ProductDetail = () => {
     }
   };
 
-  const handleAddToCart = () => {
-    if (!selectedSize) {
-      toast.warning('Please select a size', { position: "top-right", autoClose: 2000 });
-      return;
-    }
-    
-    // Add to cart logic here
-    toast.success(`Added ${quantity} item(s) to cart!`, { position: "top-right", autoClose: 2000 });
+  const getAvailableStock = () => {
+    if (!selectedSize) return 0;
+    const sizeStock = sizeStocks[selectedSize.sizeId];
+    return sizeStock ? sizeStock.stock : 0;
   };
 
-  const toggleWishlist = () => {
-    setIsWishlist(!isWishlist);
-    if (!isWishlist) {
-      toast.success('Added to wishlist', { position: "top-right", autoClose: 2000 });
-    } else {
-      toast.info('Removed from wishlist', { position: "top-right", autoClose: 2000 });
+  const handleAddToCart = async () => {
+    if (!selectedColor) {
+      toast.error('Please select a color');
+      return;
+    }
+
+    if (!selectedSize) {
+      toast.error('Please select a size');
+      return;
+    }
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.userId) {
+      toast.error('Please login to add items to cart');
+      navigate('/');
+      return;
+    }
+
+    const availableStock = getAvailableStock();
+    if (quantity > availableStock) {
+      toast.error(`Only ${availableStock} items available in stock`);
+      return;
+    }
+
+    try {
+      const cartData = {
+        userId: user.userId,
+        productId: product.productId,
+        colorId: selectedColor.colorId,
+        sizeId: selectedSize.sizeId,
+        quantity: quantity
+      };
+
+      const response = await fetch(`${API_BASE_URL}/Cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cartData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast.success('Added to cart successfully!', {
+          position: "top-right",
+          autoClose: 1500
+        });
+
+        window.dispatchEvent(new Event('cartUpdated'));
+
+        setTimeout(() => {
+          navigate('/user/cart');
+        }, 1500);
+
+      } else {
+        toast.error(result.message || 'Failed to add to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add to cart');
+    }
+  };
+
+  // Toggle wishlist with API integration
+  const toggleWishlist = async () => {
+    setWishlistLoading(true);
+    
+    try {
+      if (isWishlist) {
+        // Remove from wishlist
+        const response = await fetch(
+          `${API_BASE_URL}/wishlist/remove?userId=${userId}&productId=${id}`,
+          { method: 'DELETE' }
+        );
+        
+        if (response.ok) {
+          setIsWishlist(false);
+          toast.info('Removed from wishlist', { 
+            position: "top-right", 
+            autoClose: 2000 
+          });
+          window.dispatchEvent(new Event('wishlistUpdated'));
+        } else {
+          throw new Error('Failed to remove from wishlist');
+        }
+      } else {
+        // Add to wishlist
+        const response = await fetch(`${API_BASE_URL}/wishlist/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            productId: parseInt(id)
+          })
+        });
+        
+        if (response.ok) {
+          setIsWishlist(true);
+          toast.success('Added to wishlist', { 
+            position: "top-right", 
+            autoClose: 2000 
+          });
+          window.dispatchEvent(new Event('wishlistUpdated'));
+        } else {
+          const error = await response.json();
+          toast.error(error.message || 'Failed to add to wishlist');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -125,9 +285,9 @@ const ProductDetail = () => {
   };
 
   const getMainImage = (prod) => {
-    const mainImage = prod.productColors?.[0]?.productImages?.find(img => img.isMainImage) || 
-                     prod.productColors?.[0]?.productImages?.[0];
-    return mainImage ? `https://localhost:7208${mainImage.imageUrl}` : '/placeholder-image.jpg';
+    const mainImage = prod.productColors?.[0]?.productImages?.find(img => img.isMainImage) ||
+      prod.productColors?.[0]?.productImages?.[0];
+    return mainImage ? `${API_BASE_URL.replace('/api', '')}${mainImage.imageUrl}` : '/placeholder-image.jpg';
   };
 
   if (loading) {
@@ -153,12 +313,13 @@ const ProductDetail = () => {
 
   const currentImages = getCurrentImages();
   const currentPrice = selectedColor?.price || product.price;
-  const availableStock = selectedColor?.stock || product.stock;
+  const totalColorStock = selectedColor?.stock || 0;
+  const selectedSizeStock = getAvailableStock();
 
   return (
     <>
       <ToastContainer />
-      
+
       {/* Breadcrumb */}
       <div className="bg-light py-3 mb-4">
         <div className="container">
@@ -179,6 +340,17 @@ const ProductDetail = () => {
         </div>
       </div>
 
+      {/* Back Button */}
+      <div className="container mb-3">
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => navigate(-1)}
+        >
+          <BsChevronLeft className="me-2" />
+          Back
+        </button>
+      </div>
+
       {/* Product Details */}
       <div className="container mb-5">
         <div className="row g-4">
@@ -190,7 +362,7 @@ const ProductDetail = () => {
                   {currentImages.length > 0 ? (
                     <>
                       <img
-                        src={`https://localhost:7208${currentImages[currentImageIndex].imageUrl}`}
+                        src={`${API_BASE_URL.replace('/api', '')}${currentImages[currentImageIndex].imageUrl}`}
                         alt={product.name}
                         className="w-100 h-100"
                         style={{ objectFit: 'cover' }}
@@ -239,7 +411,7 @@ const ProductDetail = () => {
                     onClick={() => setCurrentImageIndex(index)}
                   >
                     <img
-                      src={`https://localhost:7208${img.imageUrl}`}
+                      src={`${API_BASE_URL.replace('/api', '')}${img.imageUrl}`}
                       alt={`Thumbnail ${index + 1}`}
                       className="w-100 h-100 rounded"
                       style={{ objectFit: 'cover' }}
@@ -262,20 +434,20 @@ const ProductDetail = () => {
             {/* Rating */}
             <div className="mb-3 d-flex align-items-center">
               <div className="text-warning me-2">
-                <BsStarFill />
-                <BsStarFill />
-                <BsStarFill />
-                <BsStarFill />
-                <BsStar />
+                {[...Array(5)].map((_, i) => (
+                  i < Math.floor(product.averageRating || 4) ? <BsStarFill key={i} /> : <BsStar key={i} />
+                ))}
               </div>
-              <span className="text-muted">(4.0) 125 Reviews</span>
+              <span className="text-muted">
+                ({product.averageRating?.toFixed(1) || '4.0'}) {product.totalReviews || 125} Reviews
+              </span>
             </div>
 
-            {/* Price - FIXED */}
+            {/* Price */}
             <div className="mb-4">
-              <h2 className="text-primary fw-bold mb-2">${currentPrice.toFixed(2)}</h2>
-              {availableStock > 0 ? (
-                <span className="badge bg-success">In Stock ({availableStock} available)</span>
+              <h2 className="text-primary fw-bold mb-2">₹{currentPrice.toFixed(2)}</h2>
+              {totalColorStock > 0 ? (
+                <span className="badge bg-success">In Stock ({totalColorStock} total for this color)</span>
               ) : (
                 <span className="badge bg-danger">Out of Stock</span>
               )}
@@ -323,7 +495,7 @@ const ProductDetail = () => {
                         padding: 0
                       }}
                       onClick={() => handleColorChange(color)}
-                      title={color.colorName}
+                      title={`${color.colorName} (${color.stock || 0} in stock)`}
                     >
                       {selectedColor?.colorId === color.colorId && (
                         <span className="position-absolute top-50 start-50 translate-middle text-white" style={{ textShadow: '0 0 3px #000' }}>
@@ -336,21 +508,45 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Size Selection */}
+            {/* Size Selection with Real Stock Display */}
             <div className="mb-4">
-              <h6 className="fw-bold mb-3">Select Size</h6>
-              <div className="d-flex flex-wrap gap-2">
-                {['6', '7', '8', '9', '10', '11', '12'].map((size) => (
-                  <button
-                    key={size}
-                    className={`btn ${selectedSize === size ? 'btn-primary' : 'btn-outline-primary'}`}
-                    style={{ minWidth: '60px' }}
-                    onClick={() => setSelectedSize(size)}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
+              <h6 className="fw-bold mb-3">
+                Select Size
+                {selectedSize && (
+                  <span className="text-primary ms-2">
+                    (Size {selectedSize.sizeName}: {selectedSizeStock} in stock)
+                  </span>
+                )}
+              </h6>
+              {loadingStock ? (
+                <div className="spinner-border spinner-border-sm" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              ) : (
+                <div className="d-flex flex-wrap gap-3">
+                  {selectedColor?.productSizes?.map((size) => {
+                    const sizeStock = sizeStocks[size.sizeId];
+                    const stock = sizeStock?.stock || 0;
+                    const isAvailable = sizeStock?.isAvailable && stock > 0;
+
+                    return (
+                      <div key={size.sizeId} className="text-center">
+                        <button
+                          className={`btn ${selectedSize?.sizeId === size.sizeId ? 'btn-primary' : isAvailable ? 'btn-outline-primary' : 'btn-outline-secondary'} mb-1`}
+                          style={{ minWidth: '60px' }}
+                          onClick={() => handleSizeChange(size)}
+                          disabled={!isAvailable}
+                        >
+                          {size.sizeName}
+                        </button>
+                        <small className={`d-block ${stock === 0 ? 'text-danger' : selectedSize?.sizeId === size.sizeId ? 'text-primary fw-bold' : 'text-muted'}`}>
+                          {isAvailable ? `${stock} left` : 'Out of stock'}
+                        </small>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Quantity */}
@@ -371,12 +567,17 @@ const ProductDetail = () => {
                 />
                 <button
                   className="btn btn-outline-secondary"
-                  onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
-                  disabled={quantity >= availableStock}
+                  onClick={() => setQuantity(Math.min(selectedSizeStock, quantity + 1))}
+                  disabled={!selectedSize || quantity >= selectedSizeStock}
                 >
                   +
                 </button>
               </div>
+              {selectedSize && selectedSizeStock > 0 && (
+                <small className="text-muted d-block mt-2">
+                  Maximum available: {selectedSizeStock}
+                </small>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -384,16 +585,25 @@ const ProductDetail = () => {
               <button
                 className="btn btn-primary btn-lg"
                 onClick={handleAddToCart}
-                disabled={availableStock === 0}
+                disabled={!product.isActive || !selectedSize || selectedSizeStock === 0}
               >
-                <BsCart3 className="me-2" />
-                Add to Cart
+                <BsCart3 size={20} className="me-2" />
+                {selectedSizeStock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
+
               <div className="row g-2">
                 <div className="col-6">
-                  <button className="btn btn-outline-danger w-100" onClick={toggleWishlist}>
-                    {isWishlist ? <BsHeartFill className="me-2" /> : <BsHeart className="me-2" />}
-                    Wishlist
+                  <button 
+                    className="btn btn-outline-danger w-100" 
+                    onClick={toggleWishlist}
+                    disabled={wishlistLoading}
+                  >
+                    {wishlistLoading ? (
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    ) : (
+                      isWishlist ? <BsHeartFill className="me-2" /> : <BsHeart className="me-2" />
+                    )}
+                    {isWishlist ? 'In Wishlist' : 'Add to Wishlist'}
                   </button>
                 </div>
                 <div className="col-6">
@@ -410,11 +620,7 @@ const ProductDetail = () => {
               <div className="card-body">
                 <div className="d-flex align-items-start mb-2">
                   <span className="me-2">✓</span>
-                  <small>Free shipping on orders over $50</small>
-                </div>
-                <div className="d-flex align-items-start mb-2">
-                  <span className="me-2">✓</span>
-                  <small>30-day return policy</small>
+                  <small>7-day return policy</small>
                 </div>
                 <div className="d-flex align-items-start">
                   <span className="me-2">✓</span>
@@ -466,7 +672,7 @@ const ProductDetail = () => {
                         <tr>
                           <td className="text-muted">Stock Status</td>
                           <td className="fw-semibold">
-                            {availableStock > 0 ? `${availableStock} In Stock` : 'Out of Stock'}
+                            {totalColorStock > 0 ? `${totalColorStock} In Stock` : 'Out of Stock'}
                           </td>
                         </tr>
                       </tbody>
@@ -486,7 +692,7 @@ const ProductDetail = () => {
             </div>
             {relatedProducts.map(relatedProduct => (
               <div key={relatedProduct.productId} className="col-md-6 col-lg-3 mb-4">
-                <div 
+                <div
                   className="card h-100 shadow-sm border-0 product-card"
                   onClick={() => navigate(`/product/${relatedProduct.productId}`)}
                   style={{ cursor: 'pointer' }}
@@ -499,7 +705,7 @@ const ProductDetail = () => {
                   />
                   <div className="card-body">
                     <h6 className="card-title fw-bold">{relatedProduct.name}</h6>
-                    <p className="text-primary fw-bold mb-0">${relatedProduct.price.toFixed(2)}</p>
+                    <p className="text-primary fw-bold mb-0">₹{relatedProduct.price.toFixed(2)}</p>
                   </div>
                 </div>
               </div>

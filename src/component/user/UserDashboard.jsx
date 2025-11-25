@@ -1,225 +1,586 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Add this import
-import { BsHeart, BsHeartFill, BsEye, BsCart3 } from 'react-icons/bs';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import Layout from '../layout/Layout';
+import ProductCard from './ProductCard';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const UserDashboard = () => {
-  const navigate = useNavigate(); // Add this hook
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [wishlist, setWishlist] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // ... rest of your existing code (fetchProducts, toggleWishlist, getMainImage, etc.)
+  const [filters, setFilters] = useState({
+    category: searchParams.get('category') || '',
+    brand: '',
+    gender: searchParams.get('gender') || '',
+    minPrice: '',
+    maxPrice: '',
+    search: searchParams.get('search') || '',
+    sortBy: 'featured'
+  });
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('https://localhost:7208/api/Product/GetAllProducts');
-      const data = await response.json();
-      
-      if (data.success) {
-        const activeProducts = data.products.filter(p => p.isActive);
-        setProducts(activeProducts);
-      }
-    } catch (error) {
-      toast.error('Failed to load products', { position: "top-right", autoClose: 3000 });
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    applyFilters();
+  }, [products, filters]);
+
+  const fetchData = async () => {
+  try {
+    setLoading(true);
+    await Promise.all([
+      fetchProducts().catch(err => console.error('Products error:', err)),
+      fetchCategories().catch(err => console.error('Categories error:', err)),
+      fetchBrands().catch(err => console.error('Brands error:', err))
+    ]);
+  } catch (error) {
+    console.error('Error in fetchData:', error);
+    // Only show toast if ALL requests fail
+    // toast.error('Failed to load data', { position: "top-right" });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const fetchProducts = async () => {
+  try {
+    const response = await fetch('https://localhost:7208/api/Product/GetAllProducts');
+    if (!response.ok) throw new Error(`Products API error: ${response.status}`);
+    
+    const data = await response.json();
+    if (data.success) {
+      setProducts(data.products.filter(p => p.isActive));
     }
-  };
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+};
 
-  const toggleWishlist = (productId) => {
-    if (wishlist.includes(productId)) {
-      setWishlist(wishlist.filter(id => id !== productId));
-      toast.info('Removed from wishlist', { position: "top-right", autoClose: 2000 });
-    } else {
-      setWishlist([...wishlist, productId]);
-      toast.success('Added to wishlist', { position: "top-right", autoClose: 2000 });
+const fetchCategories = async () => {
+  try {
+    const response = await fetch('https://localhost:7208/api/Categories/GetCategory');
+    if (!response.ok) throw new Error(`Categories API error: ${response.status}`);
+    
+    const data = await response.json();
+    if (data.success && data.category) {
+      setCategories(data.category);
     }
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
+};
+
+const fetchBrands = async () => {
+  try {
+    const response = await fetch('https://localhost:7208/api/Brands/GetBrands');
+    if (!response.ok) throw new Error(`Brands API error: ${response.status}`);
+    
+    const data = await response.json();
+    
+    // API returns "brand" (singular) not "brands" (plural)
+    if (data.success && data.brand) {
+      setBrands(data.brand); // No isActive field in your API response
+    }
+  } catch (error) {
+    console.error('Error fetching brands:', error);
+    throw error;
+  }
+};
+
+
+  const applyFilters = () => {
+    let filtered = [...products];
+
+    if (filters.search) {
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        p.description.toLowerCase().includes(filters.search.toLowerCase())
+      );
+    }
+
+    if (filters.category) {
+      filtered = filtered.filter(p => p.categoryId === parseInt(filters.category));
+    }
+
+    if (filters.brand) {
+      filtered = filtered.filter(p => p.brandId === parseInt(filters.brand));
+    }
+
+    if (filters.gender) {
+      filtered = filtered.filter(p => p.gender === filters.gender);
+    }
+
+    if (filters.minPrice) {
+      filtered = filtered.filter(p => p.price >= parseFloat(filters.minPrice));
+    }
+
+    if (filters.maxPrice) {
+      filtered = filtered.filter(p => p.price <= parseFloat(filters.maxPrice));
+    }
+
+    // Sorting
+    switch (filters.sortBy) {
+      case 'price-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'name':
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      default:
+        break;
+    }
+
+    setFilteredProducts(filtered);
   };
 
-  const getMainImage = (product) => {
-    const mainImage = product.productColors?.[0]?.productImages?.find(img => img.isMainImage) || 
-                     product.productColors?.[0]?.productImages?.[0];
-    return mainImage ? `https://localhost:7208${mainImage.imageUrl}` : '/placeholder-image.jpg';
-  };
-
-  // Add this function to handle product click
-  const handleProductClick = (productId) => {
-    navigate(`/product/${productId}`);
+  const clearFilters = () => {
+    setFilters({
+      category: '',
+      brand: '',
+      gender: '',
+      minPrice: '',
+      maxPrice: '',
+      search: '',
+      sortBy: 'featured'
+    });
   };
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
-        <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} role="status">
-          <span className="visually-hidden">Loading...</span>
+      <Layout>
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '70vh' }}>
+          <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Loading...</span>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <>
+    <Layout>
       <ToastContainer />
-      
-      {/* Hero Section */}
-      <div className="bg-light py-5 mb-4">
-        <div className="container">
-          <h1 className="display-4 fw-bold mb-2">Welcome to ShoeVerse</h1>
-          <p className="lead text-muted">Explore our premium footwear collection</p>
-        </div>
-      </div>
 
-      {/* Products Grid */}
-      <div className="container mb-5">
-        <div className="row mb-4">
-          <div className="col-12">
-            <h2 className="fw-bold">Our Products</h2>
-            <p className="text-muted">Browse our latest collection of {products.length} products</p>
+      {/* Hero Banner */}
+      {!filters.search && !filters.category && (
+        <section className="hero-section">
+          <div className="hero-content">
+            <h1 className="hero-title">Step Into Style</h1>
+            <p className="hero-subtitle">
+              Discover our premium collection of footwear for every occasion
+            </p>
+            <button className="hero-button" onClick={() => window.scrollTo({ top: 600, behavior: 'smooth' })}>
+              Shop Now
+            </button>
           </div>
-        </div>
+        </section>
+      )}
 
-        {products.length === 0 ? (
-          <div className="text-center py-5">
-            <h4 className="text-muted">No products available</h4>
-          </div>
-        ) : (
-          <div className="row g-4">
-            {products.map(product => (
-              <div key={product.productId} className="col-md-6 col-lg-3">
-                <div className="card h-100 shadow-sm border-0 product-card">
-                  {/* Make image clickable */}
-                  <div 
-                    className="position-relative overflow-hidden cursor-pointer"
-                    onClick={() => handleProductClick(product.productId)}
+      {/* Main Content */}
+      <div className="main-content">
+        <div className="container-fluid px-4">
+          <div className="row">
+            {/* Sidebar Filters */}
+            <div className={`col-lg-3 filter-sidebar ${showFilters ? 'show' : ''}`}>
+              <div className="filter-card">
+                <div className="filter-header">
+                  <h5>Filters</h5>
+                  <button className="clear-btn" onClick={clearFilters}>
+                    Clear All
+                  </button>
+                </div>
+
+                {/* Category Filter */}
+                <div className="filter-group">
+                  <label className="filter-label">Category</label>
+                  <select
+                    className="filter-select"
+                    value={filters.category}
+                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                   >
-                    <img
-                      src={getMainImage(product)}
-                      className="card-img-top product-image"
-                      alt={product.name}
-                      style={{ height: '280px', objectFit: 'cover' }}
+                    <option value="">All Categories</option>
+                    {categories.map(cat => (
+                      <option key={cat.categoryId} value={cat.categoryId}>
+                        {cat.categoryName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+
+                {/* Brand */}
+                <div className="filter-group">
+                  <label className="filter-label">Brand</label>
+                  <select
+                    className="filter-select"
+                    value={filters.brand}
+                    onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
+                  >
+                    <option value="">All Brands</option>
+                    {brands.map(brand => (
+                      <option key={brand.brandId} value={brand.brandId}>
+                        {brand.brandName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Gender */}
+                <div className="filter-group">
+                  <label className="filter-label">Gender</label>
+                  {['Men', 'Women', 'Unisex'].map(gender => (
+                    <div key={gender} className="filter-radio">
+                      <input
+                        type="radio"
+                        id={gender}
+                        name="gender"
+                        checked={filters.gender === gender}
+                        onChange={() => setFilters({ ...filters, gender: filters.gender === gender ? '' : gender })}
+                      />
+                      <label htmlFor={gender}>{gender}</label>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Price Range */}
+                <div className="filter-group">
+                  <label className="filter-label">Price Range</label>
+                  <div className="price-inputs">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="price-input"
+                      value={filters.minPrice}
+                      onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
                     />
-                    <button
-                      className="btn btn-light position-absolute top-0 end-0 m-3 rounded-circle"
-                      style={{ width: '40px', height: '40px', zIndex: 10 }}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click
-                        toggleWishlist(product.productId);
-                      }}
-                    >
-                      {wishlist.includes(product.productId) ? (
-                        <BsHeartFill className="text-danger" />
-                      ) : (
-                        <BsHeart />
-                      )}
-                    </button>
-                    {product.stock < 10 && product.stock > 0 && (
-                      <span className="badge bg-warning text-dark position-absolute top-0 start-0 m-3">
-                        Low Stock
-                      </span>
-                    )}
-                    {product.stock === 0 && (
-                      <span className="badge bg-danger position-absolute top-0 start-0 m-3">
-                        Out of Stock
-                      </span>
-                    )}
-                  </div>
-                  <div className="card-body">
-                    <div className="mb-2">
-                      <span className="badge bg-light text-dark me-2">
-                        {product.category?.categoryName}
-                      </span>
-                      <span className="badge bg-secondary">
-                        {product.brand?.brandName}
-                      </span>
-                    </div>
-                    {/* Make title clickable */}
-                    <h5 
-                      className="card-title fw-bold mb-2 cursor-pointer"
-                      onClick={() => handleProductClick(product.productId)}
-                    >
-                      {product.name}
-                    </h5>
-                    <p className="card-text text-muted small" style={{ minHeight: '40px' }}>
-                      {product.description.substring(0, 80)}...
-                    </p>
-                    <div className="d-flex align-items-center mb-3">
-                      <div className="me-auto">
-                        <span className="h4 fw-bold text-primary mb-0">${product.price}</span>
-                      </div>
-                      <div className="text-muted small">
-                        {product.gender}
-                      </div>
-                    </div>
-                    {product.productColors && product.productColors.length > 0 && (
-                      <div className="mb-3">
-                        <small className="text-muted me-2">Colors:</small>
-                        {product.productColors.slice(0, 5).map((color, idx) => (
-                          <span
-                            key={idx}
-                            className="d-inline-block rounded-circle me-1"
-                            style={{
-                              width: '20px',
-                              height: '20px',
-                              backgroundColor: color.hexCode,
-                              border: '2px solid #ddd'
-                            }}
-                            title={color.colorName}
-                          ></span>
-                        ))}
-                        {product.productColors.length > 5 && (
-                          <small className="text-muted">+{product.productColors.length - 5}</small>
-                        )}
-                      </div>
-                    )}
-                    <div className="d-grid gap-2">
-                      <button className="btn btn-primary">
-                        <BsCart3 className="me-2" />
-                        Add to Cart
-                      </button>
-                      {/* Update Quick View button */}
-                      <button 
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={() => handleProductClick(product.productId)}
-                      >
-                        <BsEye className="me-2" />
-                        View Details
-                      </button>
-                    </div>
+                    <span>-</span>
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="price-input"
+                      value={filters.maxPrice}
+                      onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Product Grid */}
+            <div className="col-lg-9">
+              {/* Toolbar */}
+              <div className="products-toolbar">
+                <div className="toolbar-left">
+                  <button
+                    className="filter-toggle d-lg-none"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    Filters
+                  </button>
+                  <h5 className="product-count">
+                    {filteredProducts.length} Product{filteredProducts.length !== 1 ? 's' : ''} Found
+                  </h5>
+                </div>
+                <select
+                  className="sort-select"
+                  value={filters.sortBy}
+                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                >
+                  <option value="featured">Sort by: Featured</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="name">Name: A-Z</option>
+                </select>
+              </div>
+
+              {/* Products Grid */}
+              {filteredProducts.length === 0 ? (
+                <div className="no-products">
+                  <h4>No products found</h4>
+                  <p>Try adjusting your filters</p>
+                  <button className="btn btn-primary" onClick={clearFilters}>
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="products-grid">
+                  {filteredProducts.map(product => (
+                    <ProductCard key={product.productId} product={product} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* CSS Styles */}
       <style>{`
-        .product-card {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .hero-section {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 80px 0;
+          text-align: center;
+          color: white;
+          margin-bottom: 40px;
         }
-        .product-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+
+        .hero-title {
+          font-size: 48px;
+          font-weight: 700;
+          margin-bottom: 20px;
         }
-        .product-image {
-          transition: transform 0.3s ease;
+
+        .hero-subtitle {
+          font-size: 20px;
+          margin-bottom: 30px;
+          opacity: 0.95;
         }
-        .product-card:hover .product-image {
+
+        .hero-button {
+          background: white;
+          color: #667eea;
+          padding: 15px 40px;
+          border: none;
+          border-radius: 50px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.3s;
+        }
+
+        .hero-button:hover {
           transform: scale(1.05);
         }
-        .cursor-pointer {
+
+        .main-content {
+          padding: 30px 0 60px;
+        }
+
+        .filter-sidebar {
+          padding-right: 20px;
+        }
+
+        .filter-card {
+          background: white;
+          border-radius: 12px;
+          padding: 25px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          position: sticky;
+          top: 100px;
+        }
+
+        .filter-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #f3f4f6;
+        }
+
+        .filter-header h5 {
+          margin: 0;
+          font-weight: 700;
+        }
+
+        .clear-btn {
+          background: none;
+          border: none;
+          color: #ef4444;
+          font-size: 14px;
+          font-weight: 600;
           cursor: pointer;
         }
+
+        .filter-group {
+          margin-bottom: 25px;
+        }
+
+        .filter-label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 10px;
+          color: #1f2937;
+        }
+
+        .filter-select {
+          width: 100%;
+          padding: 10px 15px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: border-color 0.3s;
+        }
+
+        .filter-select:focus {
+          outline: none;
+          border-color: #6366f1;
+        }
+
+        .filter-radio {
+          display: flex;
+          align-items: center;
+          padding: 8px 0;
+        }
+
+        .filter-radio input {
+          margin-right: 10px;
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+        }
+
+        .filter-radio label {
+          cursor: pointer;
+          margin: 0;
+        }
+
+        .price-inputs {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .price-input {
+          flex: 1;
+          padding: 10px 15px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+
+        .price-input:focus {
+          outline: none;
+          border-color: #6366f1;
+        }
+
+        .products-toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
+          padding: 20px;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .toolbar-left {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+
+        .filter-toggle {
+          padding: 10px 20px;
+          background: #6366f1;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .product-count {
+          margin: 0;
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .sort-select {
+          padding: 10px 15px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 14px;
+          cursor: pointer;
+        }
+
+        .products-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 25px;
+        }
+
+        .no-products {
+          text-align: center;
+          padding: 80px 20px;
+        }
+
+        .no-products h4 {
+          font-size: 24px;
+          color: #6b7280;
+          margin-bottom: 10px;
+        }
+
+        .no-products p {
+          color: #9ca3af;
+          margin-bottom: 25px;
+        }
+
+        @media (max-width: 991px) {
+          .filter-sidebar {
+            display: none;
+          }
+
+          .filter-sidebar.show {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+          }
+
+          .filter-card {
+            position: relative;
+            top: 0;
+            max-height: 90vh;
+            overflow-y: auto;
+          }
+
+          .hero-title {
+            font-size: 32px;
+          }
+
+          .hero-subtitle {
+            font-size: 16px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+          }
+
+          .products-toolbar {
+            flex-direction: column;
+            gap: 15px;
+            align-items: stretch;
+          }
+
+          .toolbar-left {
+            flex-direction: column;
+            align-items: stretch;
+          }
+        }
       `}</style>
-    </>
+    </Layout>
   );
 };
 
