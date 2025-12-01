@@ -8,6 +8,7 @@ import ListBrand from './ListBrand';
 import ListProduct from './ListProduct';
 import ListOrder from './ListOrder';
 import ListUser from './ListUser';
+import AdminReviews from './AdminReviews';
 
 function AdminLayout() {
   const navigate = useNavigate();
@@ -37,11 +38,9 @@ function AdminLayout() {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     
-    console.log('Raw localStorage data:', storedUser);
-    console.log('Token exists:', !!token);
+   
     
     if (!storedUser || !token) {
-      console.log('No user data in localStorage - redirecting to login');
       toast.error('Please login first', {
         position: "top-right",
         autoClose: 3000,
@@ -52,14 +51,12 @@ function AdminLayout() {
     
     try {
       const user = JSON.parse(storedUser);
-      console.log('Parsed user data:', user);
 
       const userId = user.userId || user.UserId || user.id || user.ID || null;
       const userName = user.name || user.username || user.Username || user.userName || 'Admin';
       const userEmail = user.email || user.Email || '';
       const userPhone = user.phoneNo || user.PhoneNo || user.phone || user.Phone || '';
       
-      console.log('Extracted values:', { userId, userName, userEmail, userPhone });
 
       let imageUrl = user.profileImage || user.ProfileImage || '';
       if (imageUrl && !imageUrl.startsWith('http')) {
@@ -138,8 +135,6 @@ function AdminLayout() {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     
-    console.log('Form Data before submit:', formData);
-    console.log('Admin Data userId:', adminData.userId);
     
     if (!adminData.userId) {
       toast.error('User session expired. Please login again.', {
@@ -168,14 +163,10 @@ function AdminLayout() {
     if (profileImage) {
       formDataToSend.append('profileImage', profileImage);
     }
-
-    console.log('Sending FormData:');
     for (let pair of formDataToSend.entries()) {
-      console.log(pair[0] + ': ' + pair[1]);
     }
 
     const apiUrl = `https://localhost:7208/api/User/EditProfile/${adminData.userId}`;
-    console.log('API URL:', apiUrl);
 
     try {
       const token = localStorage.getItem('token');
@@ -188,10 +179,8 @@ function AdminLayout() {
         body: formDataToSend
       });
 
-      console.log('Response status:', response.status);
 
       const data = await response.json();
-      console.log('API Response:', data);
 
       if (response.ok && data.success) {
         const updatedUser = {
@@ -202,7 +191,6 @@ function AdminLayout() {
           profileImage: data.user.profileImage
         };
         
-        console.log('Updating localStorage with:', updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
 
         toast.success('Profile updated successfully! 🎉', {
@@ -357,6 +345,7 @@ function AdminLayout() {
             <MenuItem icon="🏷️" label="Brand" page="brand" />
             <MenuItem icon="📦" label="Products" page="products" />
             <MenuItem icon="🛒" label="Orders" page="orders" />
+            <MenuItem icon="⭐" label="Reviews" page="reviews" />
           </nav>
         </div>
 
@@ -500,6 +489,7 @@ function AdminLayout() {
           {currentPage === 'brand' && <ListBrand />}
           {currentPage === 'products' && <ListProduct />}
           {currentPage === 'orders' && <ListOrder />}
+          {currentPage === 'reviews' && <AdminReviews />}
         </main>
       </div>
 

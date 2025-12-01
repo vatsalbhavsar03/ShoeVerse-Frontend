@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BsHeart, BsHeartFill, BsCart3, BsShare, BsStar, BsStarFill, BsChevronLeft, BsChevronRight } from 'react-icons/bs';
+import { BsHeart, BsHeartFill, BsCart3, BsShare, BsStar, BsStarFill, BsChevronLeft, BsChevronRight, BsPencil, BsTrash } from 'react-icons/bs';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -20,26 +20,40 @@ const ProductDetail = () => {
   const [sizeStocks, setSizeStocks] = useState({});
   const [loadingStock, setLoadingStock] = useState(false);
 
-  const userId = JSON.parse(localStorage.getItem('user'))?.userId || 1;
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
+  const [reviewFormData, setReviewFormData] = useState({
+    rating: 0,
+    reviewText: ''
+  });
+
+  // Do NOT default to a real user id. Use null if not logged in.
+  const userId = JSON.parse(localStorage.getItem('user'))?.userId ?? null;
   const API_BASE_URL = 'https://localhost:7208/api';
 
   useEffect(() => {
     fetchProductDetails();
     window.scrollTo(0, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (product) {
       fetchRelatedProducts();
       checkWishlistStatus();
+      fetchReviews();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
-  // Fetch size-specific stock when color changes
   useEffect(() => {
     if (selectedColor) {
       fetchSizeStocks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedColor]);
 
   const fetchProductDetails = async () => {
@@ -59,26 +73,29 @@ const ProductDetail = () => {
       }
     } catch (error) {
       toast.error('Failed to load product details', { position: "top-right", autoClose: 3000 });
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Check if product is in wishlist
   const checkWishlistStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/wishlist/user/${userId}`);
+      const response = await fetch(`${API_BASE_URL}/wishlist/user/${userId ?? ''}`);
       if (response.ok) {
         const wishlistData = await response.json();
-        const isInWishlist = wishlistData.some(item => item.productId === parseInt(id));
+        const isInWishlist = Array.isArray(wishlistData) && wishlistData.some(item => item.productId === parseInt(id));
         setIsWishlist(isInWishlist);
+      } else {
+        // non-fatal: just assume not in wishlist
+        setIsWishlist(false);
       }
     } catch (error) {
       console.error('Error checking wishlist:', error);
+      setIsWishlist(false);
     }
   };
 
-  // Fetch actual stock for each size based on selected color
   const fetchSizeStocks = async () => {
     if (!selectedColor || !selectedColor.productSizes) return;
 
@@ -117,6 +134,175 @@ const ProductDetail = () => {
     }
   };
 
+  // Reviews functions
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/Review/GetReviewsByProductId/${id}`);
+      if (!response.ok) {
+        setReviews([]);
+        return;
+      }
+      const data = await response.json();
+      setReviews(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    if (!userId) {
+      toast.error('Please login to submit a review');
+      return;
+    }
+
+    if (!reviewFormData.reviewText.trim()) {
+      toast.error('Please write a review');
+      return;
+    }
+
+    try {
+      if (editingReview) {
+        const response = await fetch(`${API_BASE_URL}/Review/UpdateReview/${editingReview.reviewId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rating: reviewFormData.rating,
+            reviewText: reviewFormData.reviewText
+          })
+        });
+
+        if (response.ok) {
+          toast.success('Review updated successfully!');
+          setEditingReview(null);
+          setReviewFormData({ rating: 0, reviewText: '' });
+          setShowReviewForm(false);
+          await fetchReviews();
+        } else {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const error = await response.json();
+            toast.error(error.message || 'Failed to update review');
+          } else {
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            toast.error('Failed to update review');
+          }
+        }
+      } else {
+        const response = await fetch(`${API_BASE_URL}/Review/AddReview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            productId: parseInt(id),
+            rating: reviewFormData.rating,
+            reviewText: reviewFormData.reviewText
+          })
+        });
+
+        if (response.ok) {
+          toast.success('Review submitted successfully!');
+          setReviewFormData({ rating: 0, reviewText: '' });
+          setShowReviewForm(false);
+          await fetchReviews();
+        } else {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const error = await response.json();
+            toast.error(error.message || 'Failed to submit review');
+          } else {
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            toast.error('Failed to submit review');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('An error occurred while submitting your review');
+    }
+  };
+
+  const handleEditReview = (review) => {
+    setEditingReview(review);
+    setReviewFormData({
+      rating: review.rating,
+      reviewText: review.reviewText
+    });
+    setShowReviewForm(true);
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/Review/DeleteReview/${reviewId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast.success('Review deleted successfully!');
+        await fetchReviews(); // ensure UI refreshes after delete
+      } else {
+        // attempt to read error JSON
+        try {
+          const err = await response.json();
+          toast.error(err.message || 'Failed to delete review');
+        } catch {
+          toast.error('Failed to delete review');
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      toast.error('An error occurred');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReview(null);
+    setReviewFormData({ rating: 0, reviewText: '' });
+    setShowReviewForm(false);
+  };
+
+  const renderStars = (rating, interactive = false, onRatingChange = null) => {
+    return (
+      <div className="d-flex">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span
+            key={star}
+            onClick={() => interactive && onRatingChange && onRatingChange(star)}
+            style={{ cursor: interactive ? 'pointer' : 'default' }}
+            className="me-1"
+          >
+            {star <= rating ? (
+              <BsStarFill className="text-warning" size={interactive ? 24 : 16} />
+            ) : (
+              <BsStar className="text-warning" size={interactive ? 24 : 16} />
+            )}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
+
+  // Keep all your other existing functions
   const handleColorChange = (color) => {
     setSelectedColor(color);
     setSelectedSize(null);
@@ -218,30 +404,27 @@ const ProductDetail = () => {
     }
   };
 
-  // Toggle wishlist with API integration
   const toggleWishlist = async () => {
     setWishlistLoading(true);
-    
+
     try {
       if (isWishlist) {
-        // Remove from wishlist
         const response = await fetch(
           `${API_BASE_URL}/wishlist/remove?userId=${userId}&productId=${id}`,
           { method: 'DELETE' }
         );
-        
+
         if (response.ok) {
           setIsWishlist(false);
-          toast.info('Removed from wishlist', { 
-            position: "top-right", 
-            autoClose: 2000 
+          toast.info('Removed from wishlist', {
+            position: "top-right",
+            autoClose: 2000
           });
           window.dispatchEvent(new Event('wishlistUpdated'));
         } else {
           throw new Error('Failed to remove from wishlist');
         }
       } else {
-        // Add to wishlist
         const response = await fetch(`${API_BASE_URL}/wishlist/add`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -250,17 +433,17 @@ const ProductDetail = () => {
             productId: parseInt(id)
           })
         });
-        
+
         if (response.ok) {
           setIsWishlist(true);
-          toast.success('Added to wishlist', { 
-            position: "top-right", 
-            autoClose: 2000 
+          toast.success('Added to wishlist', {
+            position: "top-right",
+            autoClose: 2000
           });
           window.dispatchEvent(new Event('wishlistUpdated'));
         } else {
-          const error = await response.json();
-          toast.error(error.message || 'Failed to add to wishlist');
+          const error = await response.json().catch(() => null);
+          toast.error((error && error.message) || 'Failed to add to wishlist');
         }
       }
     } catch (error) {
@@ -354,8 +537,9 @@ const ProductDetail = () => {
       {/* Product Details */}
       <div className="container mb-5">
         <div className="row g-4">
-          {/* Image Gallery */}
+          {/* LEFT COLUMN - Image Gallery + Reviews */}
           <div className="col-lg-6">
+            {/* Image Gallery */}
             <div className="card shadow-sm border-0 mb-3">
               <div className="card-body p-0">
                 <div className="position-relative" style={{ height: '500px' }}>
@@ -402,7 +586,7 @@ const ProductDetail = () => {
 
             {/* Thumbnail Images */}
             {currentImages.length > 1 && (
-              <div className="d-flex gap-2 overflow-auto">
+              <div className="d-flex gap-2 overflow-auto mb-4">
                 {currentImages.map((img, index) => (
                   <div
                     key={index}
@@ -420,9 +604,118 @@ const ProductDetail = () => {
                 ))}
               </div>
             )}
+
+            {/* REVIEWS SECTION - Below Product Images */}
+            <div className="card shadow-sm border-0">
+              <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 className="fw-bold mb-0">Customer Reviews ({reviews.length})</h5>
+                {userId && !showReviewForm && (
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => setShowReviewForm(true)}
+                  >
+                    Write Review
+                  </button>
+                )}
+              </div>
+
+              <div className="card-body">
+                {/* Review Form */}
+                {showReviewForm && (
+                  <div className="mb-4 p-3 bg-light rounded">
+                    <h6 className="fw-bold mb-3">
+                      {editingReview ? 'Edit Your Review' : 'Write Your Review'}
+                    </h6>
+                    <form onSubmit={handleSubmitReview}>
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold">Rating</label>
+                        {renderStars(reviewFormData.rating, true, (rating) =>
+                          setReviewFormData({ ...reviewFormData, rating })
+                        )}
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold">Your Review</label>
+                        <textarea
+                          className="form-control"
+                          rows="3"
+                          placeholder="Share your thoughts..."
+                          value={reviewFormData.reviewText}
+                          onChange={(e) =>
+                            setReviewFormData({ ...reviewFormData, reviewText: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="d-flex gap-2">
+                        <button type="submit" className="btn btn-primary btn-sm">
+                          {editingReview ? 'Update' : 'Submit'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={handleCancelEdit}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Reviews List */}
+                {reviewsLoading ? (
+                  <div className="text-center py-3">
+                    <div className="spinner-border spinner-border-sm text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <div className="text-center py-3 text-muted">
+                    <p className="mb-0">No reviews yet. Be the first to review!</p>
+                  </div>
+                ) : (
+                  <div className="reviews-list" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                    {reviews.map((review) => (
+                      <div key={review.reviewId} className="border-bottom pb-3 mb-3">
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                          <div>
+                            <h6 className="fw-bold mb-1">{review.userName || 'Anonymous'}</h6>
+                            {renderStars(review.rating)}
+                          </div>
+                          <div className="d-flex align-items-center gap-2">
+                            <small className="text-muted">{formatDate(review.createdAt)}</small>
+                            {userId === review.userId && (
+                              <div className="btn-group btn-group-sm">
+                                <button
+                                  className="btn btn-outline-primary btn-sm"
+                                  onClick={() => handleEditReview(review)}
+                                  title="Edit review"
+                                >
+                                  <BsPencil size={12} />
+                                </button>
+                                <button
+                                  className="btn btn-outline-danger btn-sm"
+                                  onClick={() => handleDeleteReview(review.reviewId)}
+                                  title="Delete review"
+                                >
+                                  <BsTrash size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <p className="mb-0 text-muted small">{review.reviewText}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Product Info */}
+          {/* RIGHT COLUMN - Product Info (keep your existing code) */}
           <div className="col-lg-6">
             <div className="mb-3">
               <span className="badge bg-light text-dark me-2 mb-2">{product.category?.categoryName}</span>
@@ -431,7 +724,6 @@ const ProductDetail = () => {
 
             <h1 className="display-5 fw-bold mb-3">{product.name}</h1>
 
-            {/* Rating */}
             <div className="mb-3 d-flex align-items-center">
               <div className="text-warning me-2">
                 {[...Array(5)].map((_, i) => (
@@ -439,11 +731,10 @@ const ProductDetail = () => {
                 ))}
               </div>
               <span className="text-muted">
-                ({product.averageRating?.toFixed(1) || '4.0'}) {product.totalReviews || 125} Reviews
+                ({product.averageRating?.toFixed(1) || '4.0'}) {reviews.length} Reviews
               </span>
             </div>
 
-            {/* Price */}
             <div className="mb-4">
               <h2 className="text-primary fw-bold mb-2">₹{currentPrice.toFixed(2)}</h2>
               {totalColorStock > 0 ? (
@@ -453,13 +744,11 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {/* Description */}
             <div className="mb-4">
               <h5 className="fw-bold mb-2">Description</h5>
               <p className="text-muted">{product.description}</p>
             </div>
 
-            {/* Product Details */}
             <div className="mb-4">
               <div className="row g-3">
                 <div className="col-6">
@@ -508,7 +797,7 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Size Selection with Real Stock Display */}
+            {/* Size Selection */}
             <div className="mb-4">
               <h6 className="fw-bold mb-3">
                 Select Size
@@ -593,8 +882,8 @@ const ProductDetail = () => {
 
               <div className="row g-2">
                 <div className="col-6">
-                  <button 
-                    className="btn btn-outline-danger w-100" 
+                  <button
+                    className="btn btn-outline-danger w-100"
                     onClick={toggleWishlist}
                     disabled={wishlistLoading}
                   >
@@ -720,6 +1009,20 @@ const ProductDetail = () => {
         }
         .product-card:hover {
           transform: translateY(-5px);
+        }
+        .reviews-list::-webkit-scrollbar {
+          width: 6px;
+        }
+        .reviews-list::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .reviews-list::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
+        }
+        .reviews-list::-webkit-scrollbar-thumb:hover {
+          background: #555;
         }
       `}</style>
     </>
