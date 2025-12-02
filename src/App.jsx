@@ -1,24 +1,28 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 import Signup from "./component/Signup";
 import Login from "./component/Login";
-import UserDashboard from './component/user/UserDashboard';
-import Shop from './component/user/Shop';
+import UserDashboard from "./component/user/UserDashboard";
+import Shop from "./component/user/Shop";
+import Cart from "./component/user/Cart";
+import WishlistPage from "./component/user/WishlistPage";
+import Profile from "./component/user/Profile";
+import AdminLayout from "./component/admin/AdminLayout";
+import ProtectedRoute from "./component/ProtectedRoute";
+import ForgotPassword from "./component/ForgotPassword";
 import ProductDetail from "./component/user/ProductDetail "
-import Cart from './component/user/Cart';
-import WishlistPage from './component/user/WishlistPage';
-import Profile from './component/user/Profile';
-import AdminLayout from './component/admin/AdminLayout';
-import ProtectedRoute from './component/ProtectedRoute';
-import ForgotPassword from './component/ForgotPassword';
+import ContactUs from "./component/user/ContactUs";
 
-import ListCategory from './component/admin/ListCategory';
-import ListBrand from './component/admin/ListBrand';
-import ListProduct from './component/admin/ListProduct';
-import ListOrder from './component/admin/ListOrder';
-import ListUser from './component/admin/ListUser';
-import AdminReviews from './component/admin/AdminReviews';
+/* Admin pages */
+import ListCategory from "./component/admin/ListCategory";
+import ListBrand from "./component/admin/ListBrand";
+import ListProduct from "./component/admin/ListProduct";
+import ListOrder from "./component/admin/ListOrder";
+import ListUser from "./component/admin/ListUser";
+import AdminReviews from "./component/admin/AdminReviews";
+import ListContact from "./component/admin/ListContact";
 
 function App() {
   return (
@@ -78,22 +82,33 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Admin Routes */}
         <Route
-          path="/admin"
+          path="/user/contact"
+          element={
+            <ProtectedRoute allowedRole="2">
+              <ContactUs />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes - layout with nested admin pages */}
+        <Route
+          path="/admin/*"
           element={
             <ProtectedRoute allowedRole="1">
               <AdminLayout />
             </ProtectedRoute>
           }
         >
+          {/* Nested admin routes (rendered inside AdminLayout via Outlet) */}
+          <Route index element={<ListCategory />} />              {/* default when /admin is visited */}
           <Route path="listCategory" element={<ListCategory />} />
           <Route path="listBrand" element={<ListBrand />} />
           <Route path="listProduct" element={<ListProduct />} />
           <Route path="listOrder" element={<ListOrder />} />
           <Route path="listUser" element={<ListUser />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="contact" element={<ListContact />} />
         </Route>
       </Routes>
     </Router>
