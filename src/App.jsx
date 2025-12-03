@@ -14,6 +14,9 @@ import ProtectedRoute from "./component/ProtectedRoute";
 import ForgotPassword from "./component/ForgotPassword";
 import ProductDetail from "./component/user/ProductDetail "
 import ContactUs from "./component/user/ContactUs";
+import Checkout from "./component/user/Checkout";
+import Orders from "./component/user/Orders";
+import OrderSuccess from "./component/user/OrderSuccess";
 
 /* Admin pages */
 import ListCategory from "./component/admin/ListCategory";
@@ -87,6 +90,30 @@ function App() {
           element={
             <ProtectedRoute allowedRole="2">
               <ContactUs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute allowedRole="2">
+              <Checkout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/orders"
+          element={
+            <ProtectedRoute allowedRole="2">
+              <Orders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-success"
+          element={
+            <ProtectedRoute allowedRole="2">
+              <OrderSuccess />
             </ProtectedRoute>
           }
         />

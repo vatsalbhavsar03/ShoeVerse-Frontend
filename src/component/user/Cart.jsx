@@ -26,11 +26,11 @@ const Cart = () => {
     try {
       setLoading(true);
       const response = await fetch(`https://localhost:7208/api/Cart/user/${userId}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Cart Response:', data);
 
@@ -67,7 +67,7 @@ const Cart = () => {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         setCartItems(prev =>
           prev.map(item =>
@@ -98,7 +98,7 @@ const Cart = () => {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         setCartItems(prev => prev.filter(item => item.cartItemId !== cartItemId));
         toast.success('Item removed from cart');
@@ -111,6 +111,15 @@ const Cart = () => {
       toast.error('Failed to remove item. Please try again.');
     }
   };
+
+  const proceedToCheckout = () => {
+    if (!cartItems || cartItems.length === 0) {
+      toast.info('Your cart is empty');
+      return;
+    }
+    navigate('/checkout'); // -> goes to Checkout.jsx route
+  };
+
 
   const clearCart = async () => {
     if (!window.confirm('Are you sure you want to clear your cart?')) return;
@@ -130,7 +139,7 @@ const Cart = () => {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         setCartItems([]);
         toast.success('Cart cleared');
@@ -155,12 +164,14 @@ const Cart = () => {
     }, 0);
   };
 
+  // TAX REMOVED: always return 0 to preserve UI while not applying taxes
   const calculateTax = () => {
-    return calculateSubtotal() * 0.18;
+    return 0;
   };
 
+  // TOTAL equals subtotal since tax is removed
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return calculateSubtotal();
   };
 
   const getImageUrl = (item) => {
@@ -188,19 +199,18 @@ const Cart = () => {
   };
 
   // Replace existing getSizeName with this (no UI changes)
-const getSizeName = (item) => {
-  // Prefer the API-provided selected size (camelCase or PascalCase)
-  if (item.sizeName) return item.sizeName;
-  if (item.SizeName) return item.SizeName;
+  const getSizeName = (item) => {
+    // Prefer the API-provided selected size (camelCase or PascalCase)
+    if (item.sizeName) return item.sizeName;
+    if (item.SizeName) return item.SizeName;
 
-  // Then prefer the nested size object if API sent one
-  if (item.size && (item.size.sizeName || item.size.SizeName || item.size.sizeValue))
-    return item.size.sizeName ?? item.size.SizeName ?? item.size.sizeValue;
+    // Then prefer the nested size object if API sent one
+    if (item.size && (item.size.sizeName || item.size.SizeName || item.size.sizeValue))
+      return item.size.sizeName ?? item.size.SizeName ?? item.size.sizeValue;
 
-  // Otherwise, no selected size -> show nothing
-  return '';
-};
-
+    // Otherwise, no selected size -> show nothing
+    return '';
+  };
 
   const getPrice = (item) => {
     return item.unitPrice || item.product?.price || 0;
@@ -221,7 +231,7 @@ const getSizeName = (item) => {
   return (
     <Layout>
       <ToastContainer position="top-right" autoClose={3000} />
-      
+
       <div className="cart-container">
         <div className="container py-5">
           {/* Header */}
@@ -261,7 +271,7 @@ const getSizeName = (item) => {
                   {cartItems.map((item) => (
                     <div key={item.cartItemId} className="cart-item">
                       {/* Product Image - Clickable */}
-                      <div 
+                      <div
                         className="cart-item-image-wrapper"
                         onClick={() => handleProductClick(item.productId)}
                       >
@@ -278,7 +288,7 @@ const getSizeName = (item) => {
 
                       {/* Product Details */}
                       <div className="cart-item-details">
-                        <h5 
+                        <h5
                           className="product-name-link"
                           onClick={() => handleProductClick(item.productId)}
                         >
@@ -287,7 +297,7 @@ const getSizeName = (item) => {
                         <p className="text-muted">
                           {item.product?.description?.substring(0, 60) || 'Premium quality footwear'}...
                         </p>
-                        
+
                         {/* Color and Size */}
                         <div className="item-specs">
                           {getColorName(item) && (
@@ -379,9 +389,13 @@ const getSizeName = (item) => {
                     <span>₹{calculateTotal().toFixed(2)}</span>
                   </div>
 
-                  <button className="btn btn-primary btn-lg w-100 mt-3">
+                  <button
+                    className="btn btn-primary btn-lg w-100 mt-3"
+                    onClick={proceedToCheckout}
+                  >
                     Proceed to Checkout
                   </button>
+
 
                   <button
                     className="btn btn-outline-secondary w-100 mt-2"
@@ -755,4 +769,3 @@ const getSizeName = (item) => {
 };
 
 export default Cart;
-
