@@ -143,6 +143,8 @@ const Header = () => {
                 <Link to="/user/userDashboard" className="nav-item">Home</Link>
                 <Link to="/user/shop" className="nav-item">Shop</Link>
                 <Link to="/user/contact" className="nav-item">Contact</Link>
+                <Link to="/user/orders" className="nav-item">Order</Link>
+                
               </nav>
 
               {/* Actions */}

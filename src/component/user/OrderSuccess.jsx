@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../layout/Layout';
 import { BsCheckCircleFill, BsBoxSeam, BsEnvelope } from 'react-icons/bs';
-import confetti from 'canvas-confetti';
+// import confetti from 'canvas-confetti';
 
 const OrderSuccess = () => {
   const navigate = useNavigate();
