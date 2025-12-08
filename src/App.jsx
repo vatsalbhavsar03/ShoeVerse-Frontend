@@ -1,6 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
+import 'bootstrap-icons/font/bootstrap-icons.css';
+
 
 import Signup from "./component/Signup";
 import Login from "./component/Login";
@@ -26,6 +28,8 @@ import ListOrder from "./component/admin/ListOrder";
 import ListUser from "./component/admin/ListUser";
 import AdminReviews from "./component/admin/AdminReviews";
 import ListContact from "./component/admin/ListContact";
+import Payment from "./component/admin/Payment";
+import AdmiDashBoard from "./component/admin/AdmiDashBoard";
 
 function App() {
   return (
@@ -119,6 +123,7 @@ function App() {
         />
 
         {/* Admin Routes - layout with nested admin pages */}
+        {/* Admin Routes - layout with nested admin pages */}
         <Route
           path="/admin/*"
           element={
@@ -127,8 +132,9 @@ function App() {
             </ProtectedRoute>
           }
         >
-          {/* Nested admin routes (rendered inside AdminLayout via Outlet) */}
-          <Route index element={<ListCategory />} />              {/* default when /admin is visited */}
+          {/* Nested admin routes */}
+          <Route index element={<AdmiDashBoard />} />  {/* Use <Dashboard /> not {Dashboard} */}
+          <Route path="admindashboard" element={<AdmiDashBoard />} />
           <Route path="listCategory" element={<ListCategory />} />
           <Route path="listBrand" element={<ListBrand />} />
           <Route path="listProduct" element={<ListProduct />} />
@@ -136,7 +142,9 @@ function App() {
           <Route path="listUser" element={<ListUser />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="contact" element={<ListContact />} />
+          <Route path="payment" element={<Payment />} />
         </Route>
+
       </Routes>
     </Router>
   );

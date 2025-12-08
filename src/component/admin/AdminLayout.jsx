@@ -77,9 +77,8 @@ function AdminLayout() {
           if (to) navigate(to);
           setCurrentPage(page);
         }}
-        className={`menu-item d-flex align-items-center justify-content-between btn w-100 text-start position-relative overflow-hidden ${
-          active ? "active" : ""
-        }`}
+        className={`menu-item d-flex align-items-center justify-content-between btn w-100 text-start position-relative overflow-hidden ${active ? "active" : ""
+          }`}
         style={{
           padding: sidebarOpen ? "10px 14px" : "10px",
           marginBottom: "6px",
@@ -153,16 +152,19 @@ function AdminLayout() {
             </button>
           </div>
 
+          
           <nav className="p-3">
-            <MenuItem icon="📊" label="Dashboard" page="dashboard" to="/admin" />
+            <MenuItem icon="📊" label="Dashboard" page="dashboard" to="/admin/admindashboard" />
             <MenuItem icon="👥" label="Customers" page="customers" to="/admin/listUser" />
             <MenuItem icon="📂" label="Category" page="category" to="/admin/listCategory" />
             <MenuItem icon="🏷️" label="Brand" page="brand" to="/admin/listBrand" />
             <MenuItem icon="📦" label="Products" page="products" to="/admin/listProduct" />
             <MenuItem icon="🛒" label="Orders" page="orders" to="/admin/listOrder" />
+            <MenuItem icon="💳" label="Payment" page="payment" to="/admin/payment" />
             <MenuItem icon="⭐" label="Reviews" page="reviews" to="/admin/reviews" />
             <MenuItem icon="📩" label="Contact" page="contact" to="/admin/contact" />
           </nav>
+
         </div>
 
         <div className="p-3">
