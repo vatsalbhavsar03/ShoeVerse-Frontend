@@ -1324,15 +1324,6 @@ const ListProduct = () => {
                       </>
                     )}
                   </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={handleCloseDeleteModal}
-                    disabled={submitting}
-                    style={{ minWidth: '120px', flex: '0 0 auto' }}
-                  >
-                    Cancel
-                  </button>
                 </div>
               </div>
             </div>

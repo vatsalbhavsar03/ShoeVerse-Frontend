@@ -35,23 +35,30 @@ const Profile = () => {
 
       if (userDataString) {
         const user = JSON.parse(userDataString);
+        console.log('Loaded user data:', user);
+        
         setUserData({
           userId: user.userId,
-          username: user.name,
+          username: user.name || user.username,
           email: user.email,
           phoneNo: user.phoneNo || '',
           profileImage: user.profileImage || ''
         });
+        
         setFormData({
-          name: user.name || '',
+          name: user.name || user.username || '',
           email: user.email || '',
           phoneNo: user.phoneNo || ''
         });
+        
         setPreviewImage(user.profileImage || '');
       } else {
         const userId = localStorage.getItem('userId');
         if (userId) {
           await fetchUserFromAPI(userId);
+        } else {
+          toast.error('User session not found. Please login again.');
+          navigate('/login');
         }
       }
     } catch (error) {
@@ -120,84 +127,113 @@ const Profile = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!formData.name.trim()) {
-      toast.error('Username is required');
-      return;
+  if (!formData.name.trim()) {
+    toast.error('Username is required');
+    return;
+  }
+
+  if (!formData.email.trim()) {
+    toast.error('Email is required');
+    return;
+  }
+
+  if (!userData.userId) {
+    toast.error('User ID not found. Please login again.');
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    const formDataToSend = new FormData();
+    formDataToSend.append('Name', formData.name.trim());
+    formDataToSend.append('Email', formData.email.trim());
+    
+    // Convert phoneNo to number - backend expects integer
+    const phoneNumber = formData.phoneNo && formData.phoneNo.toString().trim() !== '' 
+      ? parseInt(formData.phoneNo, 10) 
+      : 0;
+    formDataToSend.append('PhoneNo', phoneNumber);
+    
+    // Password field - send a dummy password (backend requirement)
+    // The backend checks: if (!string.IsNullOrEmpty(updateDto.Password))
+    // So we need to send something, but backend only updates if provided
+    formDataToSend.append('Password', 'DummyPassword@123'); // Backend will ignore this
+
+    if (selectedFile) {
+      formDataToSend.append('profileImage', selectedFile);
     }
 
-    if (!formData.email.trim()) {
-      toast.error('Email is required');
-      return;
-    }
+    console.log('Sending update for userId:', userData.userId);
+    console.log('FormData:', {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phoneNo: phoneNumber
+    });
 
-    try {
-      setSaving(true);
-
-      const formDataToSend = new FormData();
-      formDataToSend.append('Name', formData.name);
-      formDataToSend.append('Email', formData.email);
-      formDataToSend.append('PhoneNo', formData.phoneNo || '0');
-      formDataToSend.append('Password', ''); // Required field - empty means no change
-
-      if (selectedFile) {
-        formDataToSend.append('profileImage', selectedFile);
-      }
-
-      const response = await fetch(`https://localhost:7208/api/User/EditProfile/${userData.userId}`, {
+    const response = await fetch(
+      `https://localhost:7208/api/User/EditProfile/${userData.userId}`,
+      {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: formDataToSend
+      }
+    );
+
+    const result = await response.json();
+    console.log('API Response:', result);
+
+    if (result.success) {
+      toast.success('Profile updated successfully!');
+
+      // Update localStorage with new user data
+      const updatedUser = {
+        userId: result.user.userId,
+        name: result.user.username,
+        email: result.user.email,
+        phoneNo: result.user.phoneNo,
+        profileImage: result.user.profileImage
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      // Update state
+      setUserData({
+        userId: result.user.userId,
+        username: result.user.username,
+        email: result.user.email,
+        phoneNo: result.user.phoneNo,
+        profileImage: result.user.profileImage
       });
 
-      const result = await response.json();
+      setFormData({
+        name: result.user.username,
+        email: result.user.email,
+        phoneNo: result.user.phoneNo || ''
+      });
 
-      if (result.success) {
-        toast.success('Profile updated successfully!');
+      setPreviewImage(result.user.profileImage);
+      setSelectedFile(null);
 
-        const updatedUser = {
-          userId: result.user.userId,
-          name: result.user.username,
-          email: result.user.email,
-          phoneNo: result.user.phoneNo,
-          profileImage: result.user.profileImage
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
-        setUserData({
-          userId: result.user.userId,
-          username: result.user.username,
-          email: result.user.email,
-          phoneNo: result.user.phoneNo,
-          profileImage: result.user.profileImage
-        });
-
-        setFormData({
-          name: result.user.username,
-          email: result.user.email,
-          phoneNo: result.user.phoneNo || ''
-        });
-
-        setPreviewImage(result.user.profileImage);
-        setSelectedFile(null);
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      } else {
-        toast.error(result.message || 'Failed to update profile');
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Network error. Please try again.');
-    } finally {
-      setSaving(false);
+      // Reload after a short delay to show the updated info
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      toast.error(result.message || 'Failed to update profile');
     }
-  };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    toast.error('Network error. Please try again.');
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const getUserInitials = () => {
     const name = userData.username || formData.name || 'User';
@@ -303,12 +339,13 @@ const Profile = () => {
                       <div className="input-group">
                         <span className="input-icon"><BsPhone /></span>
                         <input
-                          type="number"
+                          type="tel"
                           name="phoneNo"
                           className="form-control"
                           value={formData.phoneNo}
                           onChange={handleInputChange}
                           placeholder="Optional"
+                          pattern="[0-9]*"
                         />
                       </div>
                     </div>
@@ -478,6 +515,12 @@ const Profile = () => {
 
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        input[type="tel"]::-webkit-inner-spin-button,
+        input[type="tel"]::-webkit-outer-spin-button {
           -webkit-appearance: none;
           margin: 0;
         }

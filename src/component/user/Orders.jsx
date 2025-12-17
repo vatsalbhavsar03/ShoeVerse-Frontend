@@ -5,12 +5,15 @@ import { BsArrowLeft, BsBoxSeam, BsClock, BsCheckCircle, BsXCircle, BsTruck } fr
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+
 const Orders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [productImages, setProductImages] = useState({}); // Cache for product images
+
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -24,6 +27,19 @@ const Orders = () => {
     fetchOrders(userData.userId);
   }, [navigate]);
 
+
+  // Fetch product images after orders are loaded
+  useEffect(() => {
+    if (orders.length > 0) {
+      orders.forEach(order => {
+        order.orderItems?.forEach(item => {
+          fetchProductImage(item.productId, item.colorId);
+        });
+      });
+    }
+  }, [orders]);
+
+
   const fetchOrders = async (userId) => {
     try {
       setLoading(true);
@@ -34,7 +50,6 @@ const Orders = () => {
       }
 
       const data = await response.json();
-      console.log('Orders Response:', data);
 
       if (data.success && data.orders) {
         setOrders(data.orders);
@@ -42,13 +57,55 @@ const Orders = () => {
         setOrders([]);
       }
     } catch (error) {
-      console.error('Error fetching orders:', error);
       toast.error('Failed to load orders');
       setOrders([]);
     } finally {
       setLoading(false);
     }
   };
+
+
+  const fetchProductImage = async (productId, colorId) => {
+    const cacheKey = `${productId}_${colorId}`;
+    
+    // Skip if already cached
+    if (productImages[cacheKey]) return;
+    
+    try {
+      const response = await fetch(`https://localhost:7208/api/Product/GetProductById/${productId}`);
+      const data = await response.json();
+      
+      if (data.success && data.product) {
+        let imageUrl = null;
+        
+        // Try to find the matching color
+        if (colorId && data.product.productColors) {
+          const matchingColor = data.product.productColors.find(pc => pc.colorId === colorId);
+          if (matchingColor?.productImages && matchingColor.productImages.length > 0) {
+            // Get main image or first image
+            const mainImage = matchingColor.productImages.find(img => img.isMainImage) 
+              || matchingColor.productImages[0];
+            imageUrl = mainImage?.imageUrl;
+          }
+        }
+        
+        // Fallback to first color's first image
+        if (!imageUrl && data.product.productColors?.[0]?.productImages?.[0]?.imageUrl) {
+          imageUrl = data.product.productColors[0].productImages[0].imageUrl;
+        }
+        
+        if (imageUrl) {
+          setProductImages(prev => ({
+            ...prev,
+            [cacheKey]: `https://localhost:7208${imageUrl}`
+          }));
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching image for product ${productId}:`, error);
+    }
+  };
+
 
   const cancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
@@ -77,9 +134,11 @@ const Orders = () => {
     }
   };
 
+
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
+
 
   const getStatusIcon = (status) => {
     switch (status.toLowerCase()) {
@@ -97,6 +156,7 @@ const Orders = () => {
         return <BsBoxSeam className="status-icon" />;
     }
   };
+
 
   const getStatusClass = (status) => {
     switch (status.toLowerCase()) {
@@ -117,6 +177,7 @@ const Orders = () => {
     }
   };
 
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
@@ -128,15 +189,19 @@ const Orders = () => {
     });
   };
 
+
   const getImageUrl = (item) => {
-    if (item.color?.imageUrl) {
-      return `https://localhost:7208${item.color.imageUrl}`;
+    const cacheKey = `${item.productId}_${item.colorId}`;
+    
+    // Return cached image if available
+    if (productImages[cacheKey]) {
+      return productImages[cacheKey];
     }
-    if (item.product?.productColors?.[0]?.productImages?.[0]?.imageUrl) {
-      return `https://localhost:7208${item.product.productColors[0].productImages[0].imageUrl}`;
-    }
-    return 'https://via.placeholder.com/100x100?text=No+Image';
+    
+    // Return placeholder while loading
+    return 'https://via.placeholder.com/100x100?text=Loading...';
   };
+
 
   const getPaymentMethod = (order) => {
     if (order.payments && order.payments.length > 0) {
@@ -145,12 +210,14 @@ const Orders = () => {
     return 'N/A';
   };
 
+
   const getPaymentStatus = (order) => {
     if (order.payments && order.payments.length > 0) {
       return order.payments[0].paymentStatus;
     }
     return 'N/A';
   };
+
 
   if (loading) {
     return (
@@ -163,6 +230,7 @@ const Orders = () => {
       </Layout>
     );
   }
+
 
   return (
     <Layout>

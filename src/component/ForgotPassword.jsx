@@ -9,7 +9,6 @@ const ForgotPassword = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    otp: '',
     password: '',
     confirmPassword: ''
   });
@@ -47,7 +46,8 @@ const ForgotPassword = () => {
 
   // Validate OTP
   const validateOTP = () => {
-    if (formData.otp.length !== 6) {
+    const otp = otpDigits.join('');
+    if (otp.length !== 6) {
       setMessage({ type: 'error', text: 'Please enter complete 6-digit OTP' });
       return false;
     }
@@ -75,7 +75,7 @@ const ForgotPassword = () => {
 
   // Send OTP
   const handleSendOTP = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!validateEmail()) return;
 
     setLoading(true);
@@ -87,18 +87,26 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Enable cookies/session
         body: JSON.stringify({ email: formData.email }),
       });
 
       const data = await response.json();
+      console.log('SendOTP Response:', data);
 
       if (data.success) {
         setOtpSent(true);
         setMessage({ type: 'success', text: 'OTP sent successfully! Check your email.' });
+        // Auto-focus first OTP input
+        setTimeout(() => {
+          const firstInput = document.getElementById('otp-0');
+          if (firstInput) firstInput.focus();
+        }, 100);
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to send OTP.' });
       }
     } catch (error) {
+      console.error('Send OTP Error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -114,21 +122,20 @@ const ForgotPassword = () => {
 
       // Auto-focus next input
       if (value !== '' && index < 5) {
-        document.getElementById(`otp-${index + 1}`).focus();
+        const nextInput = document.getElementById(`otp-${index + 1}`);
+        if (nextInput) nextInput.focus();
       }
 
-      // Update form data
-      setFormData({
-        ...formData,
-        otp: newOtpDigits.join('')
-      });
+      // Clear error messages when typing
+      setMessage({ type: '', text: '' });
     }
   };
 
   // Handle OTP backspace
   const handleOtpKeyDown = (index, e) => {
     if (e.key === 'Backspace' && otpDigits[index] === '' && index > 0) {
-      document.getElementById(`otp-${index - 1}`).focus();
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      if (prevInput) prevInput.focus();
     }
   };
 
@@ -137,21 +144,28 @@ const ForgotPassword = () => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').slice(0, 6);
     if (/^\d+$/.test(pastedData)) {
-      const newOtpDigits = pastedData.split('');
-      while (newOtpDigits.length < 6) {
-        newOtpDigits.push('');
-      }
+      const newOtpDigits = pastedData.padEnd(6, '').split('');
       setOtpDigits(newOtpDigits);
-      setFormData({ ...formData, otp: pastedData });
+      setMessage({ type: '', text: '' });
+      
+      // Focus last filled input
+      setTimeout(() => {
+        const lastIndex = Math.min(pastedData.length, 5);
+        const lastInput = document.getElementById(`otp-${lastIndex}`);
+        if (lastInput) lastInput.focus();
+      }, 0);
     }
   };
 
   // Verify OTP
-  const handleVerifyOTP = async () => {
+  const handleVerifyOTP = async (e) => {
+    if (e) e.preventDefault();
     if (!validateOTP()) return;
 
     setLoading(true);
     setMessage({ type: '', text: '' });
+
+    const otp = otpDigits.join('');
 
     try {
       const response = await fetch(`${API_BASE_URL}/VerifyOTP`, {
@@ -159,44 +173,35 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Enable cookies/session
         body: JSON.stringify({ 
           email: formData.email, 
-          otp: formData.otp 
+          otp: otp 
         }),
       });
 
       const data = await response.json();
+      console.log('Verify OTP Response:', data);
+      console.log('Email sent:', formData.email);
+      console.log('OTP sent:', otp);
 
       if (data.success) {
         setOtpVerified(true);
-        setMessage({ type: 'success', text: 'OTP verified successfully!' });
+        setMessage({ type: 'success', text: 'OTP verified successfully! Now set your new password.' });
       } else {
         setMessage({ type: 'error', text: data.message || 'Invalid or expired OTP.' });
       }
     } catch (error) {
+      console.error('Verify OTP Error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Submit form - Reset Password
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // If OTP not sent yet, send it
-    if (!otpSent) {
-      handleSendOTP(e);
-      return;
-    }
-
-    // If OTP not verified yet, verify it
-    if (!otpVerified) {
-      handleVerifyOTP();
-      return;
-    }
-
-    // Reset password
+  // Reset Password
+  const handleResetPassword = async (e) => {
+    if (e) e.preventDefault();
     if (!validatePassword()) return;
 
     setLoading(true);
@@ -208,6 +213,7 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Enable cookies/session
         body: JSON.stringify({ 
           email: formData.email, 
           password: formData.password 
@@ -215,19 +221,44 @@ const ForgotPassword = () => {
       });
 
       const data = await response.json();
+      console.log('Reset Password Response:', data);
 
       if (data.success) {
         setMessage({ type: 'success', text: 'Password reset successfully! Redirecting to login...' });
         setTimeout(() => {
-          navigate('/login');
+          navigate('/');
         }, 2000);
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to reset password.' });
       }
     } catch (error) {
+      console.error('Reset Password Error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Main form submit handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Step 1: Send OTP
+    if (!otpSent) {
+      await handleSendOTP();
+      return;
+    }
+
+    // Step 2: Verify OTP
+    if (otpSent && !otpVerified) {
+      await handleVerifyOTP();
+      return;
+    }
+
+    // Step 3: Reset Password
+    if (otpVerified) {
+      await handleResetPassword();
+      return;
     }
   };
 
@@ -235,6 +266,7 @@ const ForgotPassword = () => {
   const handleResendOTP = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
+    setOtpDigits(['', '', '', '', '', '']);
 
     try {
       const response = await fetch(`${API_BASE_URL}/SendOTP`, {
@@ -242,34 +274,37 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Enable cookies/session
         body: JSON.stringify({ email: formData.email }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ type: 'success', text: 'OTP resent successfully!' });
-        setOtpDigits(['', '', '', '', '', '']);
-        setFormData({ ...formData, otp: '' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        setMessage({ type: 'success', text: 'OTP resent successfully! Check your email.' });
+        // Focus first OTP input
+        setTimeout(() => {
+          const firstInput = document.getElementById('otp-0');
+          if (firstInput) firstInput.focus();
+        }, 100);
       } else {
         setMessage({ type: 'error', text: 'Failed to resend OTP.' });
       }
     } catch (error) {
+      console.error('Resend OTP Error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Change email
+  // Change email - reset everything
   const handleChangeEmail = () => {
     setOtpSent(false);
     setOtpVerified(false);
     setOtpDigits(['', '', '', '', '', '']);
     setFormData({
       email: '',
-      otp: '',
       password: '',
       confirmPassword: ''
     });
@@ -277,11 +312,11 @@ const ForgotPassword = () => {
     setMessage({ type: '', text: '' });
   };
 
-  // Get button text
+  // Get button text based on current step
   const getButtonText = () => {
     if (loading) {
       if (!otpSent) return 'Sending OTP...';
-      if (!otpVerified) return 'Verifying...';
+      if (!otpVerified) return 'Verifying OTP...';
       return 'Resetting Password...';
     }
     if (!otpSent) return 'Send OTP';
@@ -304,7 +339,9 @@ const ForgotPassword = () => {
 
         {/* Message Display */}
         {message.text && (
-          <div className={`message ${message.type}`}>{message.text}</div>
+          <div className={`message ${message.type}`}>
+            {message.text}
+          </div>
         )}
 
         {/* Single Form */}
@@ -322,6 +359,7 @@ const ForgotPassword = () => {
                 placeholder="Enter your email"
                 className={errors.email ? 'error' : ''}
                 disabled={loading || otpSent}
+                autoComplete="email"
               />
               {otpSent && (
                 <button
@@ -340,36 +378,39 @@ const ForgotPassword = () => {
           </div>
 
           {/* OTP Input - Visible after OTP sent */}
-          {otpSent && (
+          {otpSent && !otpVerified && (
             <div className="form-group fade-in">
-              <label className="otp-label">Enter OTP</label>
+              <label className="otp-label">Enter 6-Digit OTP</label>
               <div className="otp-container" onPaste={handleOtpPaste}>
                 {otpDigits.map((digit, index) => (
                   <input
                     key={index}
                     id={`otp-${index}`}
                     type="text"
+                    inputMode="numeric"
                     maxLength="1"
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     className="otp-input"
-                    disabled={loading || otpVerified}
+                    disabled={loading}
+                    autoComplete="off"
                   />
                 ))}
               </div>
-              {!otpVerified && (
-                <div className="resend-container">
-                  <button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={loading}
-                    className="resend-link"
-                  >
-                    Resend OTP
-                  </button>
-                </div>
-              )}
+              <div className="resend-container">
+                <span style={{ fontSize: '14px', color: '#666' }}>
+                  Didn't receive OTP?{' '}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={loading}
+                  className="resend-link"
+                >
+                  Resend OTP
+                </button>
+              </div>
             </div>
           )}
 
@@ -384,9 +425,10 @@ const ForgotPassword = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Enter new password"
+                  placeholder="Enter new password (min 6 characters)"
                   className={errors.password ? 'error' : ''}
                   disabled={loading}
+                  autoComplete="new-password"
                 />
                 {errors.password && (
                   <span className="error-text">{errors.password}</span>
@@ -404,6 +446,7 @@ const ForgotPassword = () => {
                   placeholder="Confirm new password"
                   className={errors.confirmPassword ? 'error' : ''}
                   disabled={loading}
+                  autoComplete="new-password"
                 />
                 {errors.confirmPassword && (
                   <span className="error-text">{errors.confirmPassword}</span>
@@ -413,7 +456,11 @@ const ForgotPassword = () => {
           )}
 
           {/* Submit Button */}
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button 
+            type="submit" 
+            className="btn-primary" 
+            disabled={loading}
+          >
             {getButtonText()}
           </button>
 
@@ -422,8 +469,13 @@ const ForgotPassword = () => {
             Remember your password?{' '}
             <span
               className="signup-link"
-              style={{ color: '#007bff', cursor: 'pointer' }}
-              onClick={() => navigate('/login')}
+              style={{ 
+                color: '#007bff', 
+                cursor: loading ? 'not-allowed' : 'pointer', 
+                fontWeight: '500',
+                opacity: loading ? 0.6 : 1
+              }}
+              onClick={() => !loading && navigate('/')}
             >
               Back to Login
             </span>
