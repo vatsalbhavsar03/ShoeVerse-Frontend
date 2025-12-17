@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Import navigation hook
+import { useNavigate } from 'react-router-dom';
 import './Signup.css';
 
 const Signup = () => {
@@ -19,7 +19,7 @@ const Signup = () => {
   const [otpSent, setOtpSent] = useState(false);
 
   const API_BASE_URL = 'https://localhost:7208/api/User';
-  const navigate = useNavigate(); // ✅ Initialize navigation
+  const navigate = useNavigate();
 
   // Handle input changes
   const handleChange = (e) => {
@@ -85,6 +85,7 @@ const Signup = () => {
       });
 
       const data = await response.json();
+
       if (data.success) {
         setMessage({ type: 'success', text: 'OTP sent to your email!' });
         setOtpSent(true);
@@ -92,7 +93,7 @@ const Signup = () => {
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to send OTP' });
       }
-    } catch {
+    } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -136,6 +137,7 @@ const Signup = () => {
       });
 
       const data = await response.json();
+
       if (data.success) {
         setMessage({ type: 'success', text: 'OTP verified successfully!' });
         setTimeout(() => {
@@ -145,7 +147,7 @@ const Signup = () => {
       } else {
         setMessage({ type: 'error', text: data.message || 'Invalid OTP' });
       }
-    } catch {
+    } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -173,19 +175,19 @@ const Signup = () => {
       });
 
       const data = await response.json();
+
       if (data.success) {
         setMessage({ type: 'success', text: 'Registration successful!' });
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        // ✅ Use React Router navigation instead of window.location.href
         setTimeout(() => {
-          navigate('/'); // redirect to login page
+          navigate('/');
         }, 2000);
       } else {
         setMessage({ type: 'error', text: data.message || 'Registration failed' });
       }
-    } catch {
+    } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);

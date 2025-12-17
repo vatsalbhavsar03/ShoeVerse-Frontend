@@ -87,17 +87,15 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Enable cookies/session
+        credentials: 'include',
         body: JSON.stringify({ email: formData.email }),
       });
 
       const data = await response.json();
-      console.log('SendOTP Response:', data);
 
       if (data.success) {
         setOtpSent(true);
         setMessage({ type: 'success', text: 'OTP sent successfully! Check your email.' });
-        // Auto-focus first OTP input
         setTimeout(() => {
           const firstInput = document.getElementById('otp-0');
           if (firstInput) firstInput.focus();
@@ -120,13 +118,11 @@ const ForgotPassword = () => {
       newOtpDigits[index] = value;
       setOtpDigits(newOtpDigits);
 
-      // Auto-focus next input
       if (value !== '' && index < 5) {
         const nextInput = document.getElementById(`otp-${index + 1}`);
         if (nextInput) nextInput.focus();
       }
 
-      // Clear error messages when typing
       setMessage({ type: '', text: '' });
     }
   };
@@ -148,7 +144,6 @@ const ForgotPassword = () => {
       setOtpDigits(newOtpDigits);
       setMessage({ type: '', text: '' });
       
-      // Focus last filled input
       setTimeout(() => {
         const lastIndex = Math.min(pastedData.length, 5);
         const lastInput = document.getElementById(`otp-${lastIndex}`);
@@ -173,7 +168,7 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Enable cookies/session
+        credentials: 'include',
         body: JSON.stringify({ 
           email: formData.email, 
           otp: otp 
@@ -181,9 +176,6 @@ const ForgotPassword = () => {
       });
 
       const data = await response.json();
-      console.log('Verify OTP Response:', data);
-      console.log('Email sent:', formData.email);
-      console.log('OTP sent:', otp);
 
       if (data.success) {
         setOtpVerified(true);
@@ -213,7 +205,7 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Enable cookies/session
+        credentials: 'include',
         body: JSON.stringify({ 
           email: formData.email, 
           password: formData.password 
@@ -221,7 +213,6 @@ const ForgotPassword = () => {
       });
 
       const data = await response.json();
-      console.log('Reset Password Response:', data);
 
       if (data.success) {
         setMessage({ type: 'success', text: 'Password reset successfully! Redirecting to login...' });
@@ -243,19 +234,16 @@ const ForgotPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Step 1: Send OTP
     if (!otpSent) {
       await handleSendOTP();
       return;
     }
 
-    // Step 2: Verify OTP
     if (otpSent && !otpVerified) {
       await handleVerifyOTP();
       return;
     }
 
-    // Step 3: Reset Password
     if (otpVerified) {
       await handleResetPassword();
       return;
@@ -274,7 +262,7 @@ const ForgotPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Enable cookies/session
+        credentials: 'include',
         body: JSON.stringify({ email: formData.email }),
       });
 
@@ -282,7 +270,6 @@ const ForgotPassword = () => {
 
       if (data.success) {
         setMessage({ type: 'success', text: 'OTP resent successfully! Check your email.' });
-        // Focus first OTP input
         setTimeout(() => {
           const firstInput = document.getElementById('otp-0');
           if (firstInput) firstInput.focus();
@@ -346,7 +333,7 @@ const ForgotPassword = () => {
 
         {/* Single Form */}
         <form onSubmit={handleSubmit}>
-          {/* Email Input - Always visible */}
+          {/* Email Input */}
           <div className="form-group">
             <label htmlFor="email">Email Address *</label>
             <div className="email-input-wrapper">
@@ -377,7 +364,7 @@ const ForgotPassword = () => {
             )}
           </div>
 
-          {/* OTP Input - Visible after OTP sent */}
+          {/* OTP Input */}
           {otpSent && !otpVerified && (
             <div className="form-group fade-in">
               <label className="otp-label">Enter 6-Digit OTP</label>
@@ -414,7 +401,7 @@ const ForgotPassword = () => {
             </div>
           )}
 
-          {/* Password Fields - Visible after OTP verified */}
+          {/* Password Fields */}
           {otpVerified && (
             <>
               <div className="form-group fade-in">
